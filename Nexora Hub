@@ -1,1 +1,611 @@
+--[[
+    Nexora Hub V1.0 (No Load): Base Holographic UI (Clean Start)
+    - IMPORTANT: No Loading Screen implemented. Hub displays immediately.
+    - Style: Holographic Robotics (Cyan/Teal) with 2-Column Layout.
+]]
 
+-- === Global Configuration ===
+local GUI_NAME = "NEXORA // H U B V1.0"
+local BACKGROUND_COLOR = Color3.fromRGB(30, 35, 40)    
+local TAB_LIST_COLOR = Color3.fromRGB(45, 50, 55)      
+local ACCENT_COLOR = Color3.fromRGB(0, 255, 180)       
+local TEXT_COLOR = Color3.fromRGB(220, 240, 255)       
+local GLOW_STROKE_COLOR = Color3.fromRGB(0, 200, 150)  
+local TRANSPARENCY_LEVEL = 0.75                        
+local CORNER_RADIUS = UDim.new(0, 0)                   
+local CONTENT_PADDING = 12 
+
+-- === Roblox Services & Variables ===
+local Player = game.Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local tabButtons = {}
+local tabContents = {}
+
+-- === 1. HELPER FUNCTIONS ===
+
+-- สร้างเส้นขอบ UIStroke
+local function createStroke(parent, color, transparency)
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = 1
+    stroke.Color = color
+    stroke.Transparency = transparency
+    stroke.LineJoinMode = Enum.LineJoinMode.Miter 
+    stroke.Parent = parent
+    return stroke
+end
+
+-- สร้างปุ่ม Toggle (Placeholder)
+local function createToggle(parent, name, description, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 40)
+    frame.BackgroundColor3 = TAB_LIST_COLOR
+    frame.BackgroundTransparency = TRANSPARENCY_LEVEL + 0.1 
+    frame.Parent = parent
+
+    -- (UI elements for Toggle like corner, label, button, stroke, and click logic)
+    -- ... (Same as V9.0) ...
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = CORNER_RADIUS
+    corner.Parent = frame
+    createStroke(frame, TEXT_COLOR, 0.7) 
+
+    local status = false
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Text = name .. " (" .. description .. ")"
+    label.TextColor3 = TEXT_COLOR
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0, 80, 0, 30)
+    toggleButton.Position = UDim2.new(1, -10, 0.5, 0)
+    toggleButton.AnchorPoint = Vector2.new(1, 0.5)
+    toggleButton.Text = "OFF"
+    toggleButton.TextColor3 = TEXT_COLOR
+    toggleButton.BackgroundColor3 = Color3.fromRGB(60, 65, 70) 
+    toggleButton.Font = Enum.Font.SourceSansBold
+    toggleButton.TextSize = 14
+    toggleButton.Parent = frame
+
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = CORNER_RADIUS
+    toggleCorner.Parent = toggleButton
+    local glowStroke = createStroke(toggleButton, TEXT_COLOR, 0.7)
+    
+    local function updateToggleDisplay()
+        if status then
+            toggleButton.Text = "ON"
+            toggleButton.BackgroundColor3 = ACCENT_COLOR 
+            glowStroke.Color = GLOW_STROKE_COLOR 
+            glowStroke.Transparency = 0.3 
+        else
+            toggleButton.Text = "OFF"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(60, 65, 70) 
+            glowStroke.Color = TEXT_COLOR
+            glowStroke.Transparency = 0.7
+        end
+    end
+
+    toggleButton.MouseButton1Click:Connect(function()
+        status = not status
+        updateToggleDisplay()
+        callback(status) 
+    end)
+
+    updateToggleDisplay()
+    return frame
+end
+
+-- สร้างแถบ Slider (Placeholder)
+local function createSlider(parent, name, minVal, maxVal, initialVal, step, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 50)
+    frame.BackgroundColor3 = TAB_LIST_COLOR
+    frame.BackgroundTransparency = TRANSPARENCY_LEVEL + 0.1
+    frame.Parent = parent
+
+    -- (UI elements for Slider like corner, label, thumb, and drag logic)
+    -- ... (Same as V9.0) ...
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = CORNER_RADIUS
+    corner.Parent = frame
+    createStroke(frame, TEXT_COLOR, 0.7)
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.Position = UDim2.new(0, 0, 0, 0)
+    label.Text = name .. ": " .. tostring(initialVal)
+    label.TextColor3 = TEXT_COLOR
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    label.Position = UDim2.new(0, 10, 0, 5)
+
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, -20, 0, 5)
+    sliderFrame.Position = UDim2.new(0.5, 0, 0.8, 0)
+    sliderFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    sliderFrame.BackgroundColor3 = Color3.fromRGB(60, 65, 70) 
+    sliderFrame.Parent = frame
+    createStroke(sliderFrame, TEXT_COLOR, 0.8) 
+    
+    local fillBar = Instance.new("Frame")
+    fillBar.Size = UDim2.new(0, 0, 1, 0)
+    fillBar.BackgroundColor3 = ACCENT_COLOR
+    fillBar.Parent = sliderFrame
+    
+    local thumb = Instance.new("Frame")
+    thumb.Size = UDim2.new(0, 15, 0, 15)
+    thumb.Position = UDim2.new(0, 0, 0.5, 0)
+    thumb.AnchorPoint = Vector2.new(0.5, 0.5)
+    thumb.BackgroundColor3 = GLOW_STROKE_COLOR
+    thumb.BorderSizePixel = 0
+    thumb.Parent = sliderFrame
+    createStroke(thumb, ACCENT_COLOR, 0.3) 
+    
+    local thumbCorner = Instance.new("UICorner")
+    thumbCorner.CornerRadius = CORNER_RADIUS 
+    thumbCorner.Parent = thumb
+
+    local currentValue = initialVal
+    local isDragging = false
+
+    local function updateSliderDisplay(newValue)
+        local ratio = (newValue - minVal) / (maxVal - minVal)
+        local roundedValue = math.floor(newValue / step) * step 
+        roundedValue = math.min(maxVal, math.max(minVal, roundedValue))
+        
+        fillBar.Size = UDim2.new(ratio, 0, 1, 0)
+        thumb.Position = UDim2.new(ratio, 0, 0.5, 0)
+        label.Text = name .. ": " .. string.format("%.1f", roundedValue) 
+        currentValue = roundedValue
+        callback(roundedValue) 
+    end
+
+    local function handleDrag(input)
+        local x = input.Position.X - sliderFrame.AbsolutePosition.X
+        local width = sliderFrame.AbsoluteSize.X
+        local ratio = math.clamp(x / width, 0, 1)
+        
+        local newValue = minVal + (maxVal - minVal) * ratio
+        updateSliderDisplay(newValue)
+    end
+
+    thumb.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = true
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            handleDrag(input)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = false
+        end
+    end)
+    
+    sliderFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = true
+            handleDrag(input)
+        end
+    end)
+
+    updateSliderDisplay(initialVal)
+    return frame
+end
+
+-- --- NEW HELPER: Checkbox Component (Minimal Style) ---
+local function createCheckbox(parent, name, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 30)
+    frame.BackgroundColor3 = TAB_LIST_COLOR
+    frame.BackgroundTransparency = TRANSPARENCY_LEVEL + 0.1 
+    frame.Parent = parent
+
+    local status = false
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -35, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.Text = name
+    label.TextColor3 = TEXT_COLOR
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    local box = Instance.new("TextButton")
+    box.Size = UDim2.new(0, 20, 0, 20)
+    box.Position = UDim2.new(1, -10, 0.5, 0)
+    box.AnchorPoint = Vector2.new(1, 0.5)
+    box.Text = " " 
+    box.TextColor3 = ACCENT_COLOR
+    box.BackgroundColor3 = BACKGROUND_COLOR 
+    box.Font = Enum.Font.SourceSans
+    box.TextSize = 16
+    box.Parent = frame
+    createStroke(box, TEXT_COLOR, 0.7)
+    
+    local function updateDisplay()
+        if status then
+            box.Text = "✅" 
+            box.BackgroundColor3 = ACCENT_COLOR
+        else
+            box.Text = " "
+            box.BackgroundColor3 = BACKGROUND_COLOR
+        end
+    end
+
+    box.MouseButton1Click:Connect(function()
+        status = not status
+        updateDisplay()
+        callback(status) 
+    end)
+
+    updateDisplay()
+    return frame
+end
+
+
+-- === 2. MAIN GUI STRUCTURE ===
+local function createNexoraHubGui()
+    
+    if PlayerGui:FindFirstChild("NexoraMasterGui") then
+        return PlayerGui:FindFirstChild("NexoraMasterGui"):FindFirstChild("MainWindow")
+    end
+    
+    local ScreenG = Instance.new("ScreenGui")
+    ScreenG.Name = "NexoraMasterGui"
+    ScreenG.Parent = PlayerGui
+    
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainWindow"
+    MainFrame.Size = UDim2.new(0, 620, 0, 420) 
+    MainFrame.Position = UDim2.new(0.5, -310, 0.5, -210)
+    MainFrame.BackgroundColor3 = BACKGROUND_COLOR
+    MainFrame.BackgroundTransparency = TRANSPARENCY_LEVEL 
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Draggable = true 
+    MainFrame.Parent = ScreenG
+    MainFrame.Visible = true 
+
+    local MainCorner = Instance.new("UICorner")
+    MainCorner.CornerRadius = CORNER_RADIUS 
+    MainCorner.Parent = MainFrame
+    createStroke(MainFrame, ACCENT_COLOR, 0.7) 
+    
+    -- Header
+    local Header = Instance.new("Frame")
+    Header.Name = "Header"
+    Header.Size = UDim2.new(1, 0, 0, 30) 
+    Header.BackgroundColor3 = TAB_LIST_COLOR
+    Header.BackgroundTransparency = TRANSPARENCY_LEVEL 
+    Header.Parent = MainFrame
+    
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(0.5, 0, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+    local GameName = game.Name or "UNKNOWN"
+    TitleLabel.Text = GUI_NAME .. " // USER: " .. Player.Name .. " // MAP: " .. GameName
+    TitleLabel.TextColor3 = ACCENT_COLOR 
+    TitleLabel.BackgroundTransparency = 1 
+    TitleLabel.Font = Enum.Font.SourceSansSemibold
+    TitleLabel.TextSize = 18
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.Parent = Header
+    createStroke(TitleLabel, GLOW_STROKE_COLOR, 0.6) 
+
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Name = "CloseButton"
+    CloseButton.Size = UDim2.new(0, 30, 1, 0)
+    CloseButton.Position = UDim2.new(1, -30, 0, 0)
+    CloseButton.Text = "X" 
+    CloseButton.TextColor3 = TEXT_COLOR
+    CloseButton.BackgroundColor3 = TAB_LIST_COLOR
+    CloseButton.BackgroundTransparency = TRANSPARENCY_LEVEL 
+    CloseButton.Font = Enum.Font.SourceSansBold
+    CloseButton.TextSize = 18
+    CloseButton.Parent = Header
+    
+    createStroke(CloseButton, TEXT_COLOR, 0.8) 
+
+    CloseButton.MouseButton1Click:Connect(function()
+        MainFrame.Visible = false 
+    end)
+    
+    -- Tab List
+    local TabList = Instance.new("Frame")
+    TabList.Name = "TabList"
+    TabList.Size = UDim2.new(0, 160, 1, -30) 
+    TabList.Position = UDim2.new(0, 0, 0, 30)
+    TabList.BackgroundColor3 = TAB_LIST_COLOR
+    TabList.BackgroundTransparency = TRANSPARENCY_LEVEL 
+    TabList.Parent = MainFrame
+    
+    local TabListLayout = Instance.new("UIListLayout")
+    TabListLayout.Padding = UDim.new(0, 2)
+    TabListLayout.FillDirection = Enum.FillDirection.Vertical
+    TabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    TabListLayout.Parent = TabList
+
+    -- Content Area
+    local ContentArea = Instance.new("ScrollingFrame")
+    ContentArea.Name = "ContentArea"
+    ContentArea.Size = UDim2.new(1, -160, 1, -50) 
+    ContentArea.Position = UDim2.new(0, 160, 0, 30)
+    ContentArea.BackgroundColor3 = BACKGROUND_COLOR
+    ContentArea.BackgroundTransparency = TRANSPARENCY_LEVEL + 0.05 
+    ContentArea.BorderSizePixel = 0
+    ContentArea.ScrollBarThickness = 6 
+    ContentArea.CanvasSize = UDim2.new(0, 0, 2, 0) 
+    ContentArea.Parent = MainFrame
+    createStroke(ContentArea, TEXT_COLOR, 0.8) 
+    
+    local ContentPadding = Instance.new("UIPadding")
+    ContentPadding.PaddingTop = UDim.new(0, CONTENT_PADDING)
+    ContentPadding.PaddingBottom = UDim.new(0, CONTENT_PADDING)
+    ContentPadding.PaddingLeft = UDim.new(0, CONTENT_PADDING)
+    ContentPadding.PaddingRight = UDim.new(0, CONTENT_PADDING)
+    ContentPadding.Parent = ContentArea
+    
+    local HorizontalLayout = Instance.new("UIListLayout")
+    HorizontalLayout.FillDirection = Enum.FillDirection.Horizontal
+    HorizontalLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    HorizontalLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+    HorizontalLayout.Padding = UDim.new(0, 10) 
+    HorizontalLayout.Parent = ContentArea
+
+    -- Status Bar
+    local StatusBar = Instance.new("Frame")
+    StatusBar.Name = "StatusBar"
+    StatusBar.Size = UDim2.new(1, 0, 0, 20)
+    StatusBar.Position = UDim2.new(0, 160, 1, -20)
+    StatusBar.BackgroundColor3 = TAB_LIST_COLOR
+    StatusBar.BackgroundTransparency = TRANSPARENCY_LEVEL 
+    StatusBar.Parent = MainFrame
+    createStroke(StatusBar, TEXT_COLOR, 0.8) 
+    
+    local StatusText = Instance.new("TextLabel")
+    StatusText.Size = UDim2.new(1, 0, 1, 0)
+    StatusText.Text = "STATUS: ONLINE | V1.0 | PING: Initializing... | TIME: " .. os.date("%H:%M:%S")
+    StatusText.TextColor3 = TEXT_COLOR 
+    StatusText.BackgroundTransparency = 1 
+    StatusText.Font = Enum.Font.SourceSans
+    StatusText.TextSize = 12
+    StatusText.TextXAlignment = Enum.TextXAlignment.Left
+    StatusText.TextWrapped = true
+    StatusText.Position = UDim2.new(0, 5, 0, 0)
+    StatusText.Parent = StatusBar
+
+    local function updateStatusBar()
+        while RunService.Heartbeat:Wait() do
+            local pingMs = math.floor(game:GetService("Stats").Network.ServerStats.Ping.Value * 1000) or "N/A"
+            StatusText.Text = "STATUS: ONLINE | PING: " .. pingMs .. "ms | TIME: " .. os.date("%H:%M:%S")
+            task.wait(1) 
+        end
+    end
+    task.spawn(updateStatusBar)
+
+    local ScanLine = Instance.new("Frame")
+    ScanLine.Size = UDim2.new(1, 0, 0, 2) 
+    ScanLine.BackgroundColor3 = ACCENT_COLOR 
+    ScanLine.BackgroundTransparency = 0.5
+    ScanLine.Position = UDim2.new(0, 0, 0, 0) 
+    ScanLine.Parent = StatusBar
+    
+    local scanInfo = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true, 0)
+    local scanProperties = { Position = UDim2.new(0, 0, 1, -2) } 
+    TweenService:Create(ScanLine, scanInfo, scanProperties):Play()
+    
+    -- Tab Switching Logic
+    local function switchTab(selectedTabName)
+        for name, button in pairs(tabButtons) do
+            button.BackgroundColor3 = TAB_LIST_COLOR
+            button.BackgroundTransparency = TRANSPARENCY_LEVEL 
+            if button:FindFirstChildOfClass("UIStroke") then
+                button:FindFirstChildOfClass("UIStroke"):Destroy() 
+            end
+        end
+        for name, content in pairs(tabContents) do
+            content.Visible = false
+        end
+        
+        if tabContents[selectedTabName] then
+            local content = tabContents[selectedTabName]
+            content.Visible = true
+            -- Set CanvasSize based on content height (assuming 2 columns here)
+            local column1 = content:FindFirstChild("MiningColumn")
+            local column2 = content:FindFirstChild("CombatColumn")
+            
+            local totalHeight = 0
+            if column1 and column2 then
+                totalHeight = math.max(column1.AbsoluteSize.Y, column2.AbsoluteSize.Y)
+            elseif column1 then
+                totalHeight = column1.AbsoluteSize.Y
+            end
+            
+            ContentArea.CanvasSize = UDim2.new(0, 0, 0, totalHeight + CONTENT_PADDING * 2) 
+        end
+        if tabButtons[selectedTabName] then
+            local button = tabButtons[selectedTabName]
+            button.BackgroundColor3 = ACCENT_COLOR 
+            button.BackgroundTransparency = TRANSPARENCY_LEVEL - 0.2 
+            createStroke(button, GLOW_STROKE_COLOR, 0.3) 
+        end
+    end
+    
+    local function createTab(tabName, icon, isDefault)
+        local button = Instance.new("TextButton")
+        -- ... (โค้ด Button เหมือน V9.0) ...
+        button.Name = tabName.."Tab"
+        button.Size = UDim2.new(1, -5, 0, 30)
+        button.Position = UDim2.new(0, 2, 0, 0)
+        button.Text = icon.." "..tabName
+        button.TextColor3 = TEXT_COLOR
+        button.BackgroundColor3 = isDefault and ACCENT_COLOR or TAB_LIST_COLOR 
+        button.BackgroundTransparency = isDefault and TRANSPARENCY_LEVEL - 0.2 or TRANSPARENCY_LEVEL 
+        button.Font = Enum.Font.SourceSans
+        button.TextSize = 16
+        button.TextXAlignment = Enum.TextXAlignment.Left
+        button.Parent = TabList
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = CORNER_RADIUS
+        corner.Parent = button
+        
+        if isDefault then
+            createStroke(button, GLOW_STROKE_COLOR, 0.3)
+        end
+        
+        local content = Instance.new("Frame")
+        content.Name = tabName.."Content"
+        content.Size = UDim2.new(1, 0, 1, 0) -- Full size to fit ContentArea
+        content.BackgroundColor3 = BACKGROUND_COLOR
+        content.BackgroundTransparency = 1 
+        content.Parent = ContentArea
+        content.Visible = isDefault or false 
+        
+        button.MouseButton1Click:Connect(function()
+            switchTab(tabName)
+        end)
+        
+        tabButtons[tabName] = button
+        tabContents[tabName] = content
+
+        return content
+    end
+
+    -- === TAB CONTENT DEFINITION ===
+    
+    local MainContent = createTab("Main", "⚙️", true) 
+    
+    -- Column 1 - Mining Features
+    local MiningColumn = Instance.new("Frame")
+    MiningColumn.Name = "MiningColumn"
+    MiningColumn.Size = UDim2.new(0.5, -5, 1, 0) 
+    MiningColumn.BackgroundColor3 = BACKGROUND_COLOR
+    MiningColumn.BackgroundTransparency = 1 
+    MiningColumn.Parent = MainContent
+    
+    local MiningLayout = Instance.new("UIListLayout")
+    MiningLayout.Padding = UDim.new(0, 5)
+    MiningLayout.Parent = MiningColumn
+    
+    local MiningTitle = Instance.new("TextLabel")
+    MiningTitle.Size = UDim2.new(1, 0, 0, 25) 
+    MiningTitle.Text = ":: MINING PROTOCOL ::" 
+    MiningTitle.TextColor3 = ACCENT_COLOR
+    MiningTitle.BackgroundTransparency = 1 
+    MiningTitle.Font = Enum.Font.SourceSansBold
+    MiningTitle.TextSize = 14
+    MiningTitle.TextXAlignment = Enum.TextXAlignment.Left
+    MiningTitle.Parent = MiningColumn
+    
+    createCheckbox(MiningColumn, "Auto Mine", function(s) print("Auto Mine: " .. tostring(s)) end)
+    createCheckbox(MiningColumn, "Untouched Ores", function(s) print("Untouched Ores: " .. tostring(s)) end)
+    
+    local function onTeleportSpeedChanged(value)
+        print("[Mining] Teleport Speed set to " .. value)
+    end
+    createSlider(
+        MiningColumn, 
+        "Teleport Speed",  
+        1, 60, 30, 1, onTeleportSpeedChanged
+    )
+
+    -- Column 2 - Combat Features
+    local CombatColumn = Instance.new("Frame")
+    CombatColumn.Name = "CombatColumn"
+    CombatColumn.Size = UDim2.new(0.5, -5, 1, 0)
+    CombatColumn.BackgroundColor3 = BACKGROUND_COLOR
+    CombatColumn.BackgroundTransparency = 1 
+    CombatColumn.Parent = MainContent
+
+    local CombatLayout = Instance.new("UIListLayout")
+    CombatLayout.Padding = UDim.new(0, 5)
+    CombatLayout.Parent = CombatColumn
+    
+    local CombatTitle = Instance.new("TextLabel")
+    CombatTitle.Size = UDim2.new(1, 0, 0, 25) 
+    CombatTitle.Text = ":: COMBAT PROTOCOL ::" 
+    CombatTitle.TextColor3 = ACCENT_COLOR
+    CombatTitle.BackgroundTransparency = 1 
+    CombatTitle.Font = Enum.Font.SourceSansBold
+    CombatTitle.TextSize = 14
+    CombatTitle.TextXAlignment = Enum.TextXAlignment.Left
+    CombatTitle.Parent = CombatColumn
+    
+    createCheckbox(CombatColumn, "Auto Fight Mobs", function(s) print("Auto Fight Mobs: " .. tostring(s)) end)
+    createCheckbox(CombatColumn, "Select Mobs To Fight", function(s) print("Select Mobs: " .. tostring(s)) end)
+
+    local function onCombatDistanceChanged(value)
+        print("[Combat] Distance set to " .. value .. " studs")
+    end
+    createSlider(
+        CombatColumn, 
+        "Combat Distance",  
+        5, 100, 15, 5, onCombatDistanceChanged
+    )
+    
+    createTab("Movement", "🚶", false) 
+    createTab("System Info", "📊", false) 
+
+    switchTab("Main")
+    
+    return MainFrame
+end
+
+-- === 3. FLOATING TOGGLE BUTTON ===
+local function createFloatingButton(MainFrame)
+    local ScreenG = MainFrame.Parent
+    
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Name = "FloatingToggle"
+    ToggleButton.Size = UDim2.new(0, 45, 0, 45) 
+    ToggleButton.Position = UDim2.new(0, 10, 0, 10) 
+    ToggleButton.Text = "N" 
+    ToggleButton.TextColor3 = TEXT_COLOR
+    ToggleButton.BackgroundColor3 = ACCENT_COLOR 
+    ToggleButton.Font = Enum.Font.SourceSansBold
+    ToggleButton.TextSize = 30
+    ToggleButton.Draggable = true 
+    ToggleButton.Parent = ScreenG
+    
+    createStroke(ToggleButton, GLOW_STROKE_COLOR, 0.3) 
+    
+    ToggleButton.MouseButton1Click:Connect(function()
+        MainFrame.Visible = not MainFrame.Visible 
+    end)
+end
+
+-- === 4. EXECUTION FLOW (No Load) ===
+-- Hub หลักจะถูกสร้างขึ้นทันที
+local success, MainFrame = pcall(createNexoraHubGui) 
+
+if success and MainFrame then
+    pcall(function()
+        createFloatingButton(PlayerGui:FindFirstChild("NexoraMasterGui"):FindFirstChild("MainWindow"))
+    end)
+    print("Nexora Hub V1.0 (No Load): System activated immediately.")
+end
