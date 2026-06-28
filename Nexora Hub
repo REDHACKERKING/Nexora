@@ -1,13 +1,367 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/x2Swiftz/UI-Library/refs/heads/main/Libraries/CompKiller%20-%20Library.lua"))()
+-- =================================================================
+-- LUNA INTERFACE SUITE (UI LIBRARY - EMBEDDED)
+-- =================================================================
+local Luna = {
+    Elements = {},
+    Properties = {
+        Color = Color3.fromRGB(44, 122, 232),
+        WindowCount = 0
+    }
+}
 
-local Window = Library:CreateWindow({
-    Name = "My Hub",
-    Subtitle = "By Phone",
-    LogoID = "6031280882",
-    LoadingEnabled = true
-})
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
--- ฟังก์ชั่นตรวจสอบความถูกต้องเงียบๆ ก่อนส่งข้อมูล
+function Luna:CreateWindow(options)
+    options = options or {}
+    local windowTitle = options.Name or "Luna Interface"
+    
+    -- ลบ UI เก่าที่ชื่อซ้ำกันออกก่อนเพื่อป้องกันการซ้อนกัน
+    if CoreGui:FindFirstChild("LunaUI") then
+        CoreGui:FindFirstChild("LunaUI"):Destroy()
+    end
+
+    -- สร้าง Core ScreenGui
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "LunaUI"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- ตรวจสอบความปลอดภัยระดับการรันระดับ Executor
+    if syn and syn.protect_gui then
+        syn.protect_gui(ScreenGui)
+        ScreenGui.Parent = CoreGui
+    elseif gethui then
+        ScreenGui.Parent = gethui()
+    else
+        ScreenGui.Parent = CoreGui
+    end
+
+    -- Main Window Frame
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, 550, 0, 350)
+    MainFrame.Position = UDim2.new(0.5, -275, 0.5, -175)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Active = true
+    MainFrame.Draggable = true -- รองรับการลากบนมือถือ/คอมพิวเตอร์
+    MainFrame.Parent = ScreenGui
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 8)
+    UICorner.Parent = MainFrame
+
+    -- Topbar (แถบด้านบน)
+    local Topbar = Instance.new("Frame")
+    Topbar.Name = "Topbar"
+    Topbar.Size = UDim2.new(1, 0, 0, 40)
+    Topbar.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+    Topbar.BorderSizePixel = 0
+    Topbar.Parent = MainFrame
+
+    local TopbarCorner = Instance.new("UICorner")
+    TopbarCorner.CornerRadius = UDim.new(0, 8)
+    TopbarCorner.Parent = Topbar
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(1, -40, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+    TitleLabel.Text = windowTitle
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.TextSize = 18
+    TitleLabel.Font = Enum.Font.SourceSansBold
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Parent = Topbar
+
+    -- Sidebar (แถบเมนูซ้าย)
+    local Sidebar = Instance.new("Frame")
+    Sidebar.Name = "Sidebar"
+    Sidebar.Size = UDim2.new(0, 140, 1, -40)
+    Sidebar.Position = UDim2.new(0, 0, 0, 40)
+    Sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Sidebar.BorderSizePixel = 0
+    Sidebar.Parent = MainFrame
+
+    local SidebarLayout = Instance.new("UIListLayout")
+    SidebarLayout.Padding = UDim.new(0, 5)
+    SidebarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    SidebarLayout.Parent = Sidebar
+
+    local SidebarPadding = Instance.new("UIPadding")
+    SidebarPadding.PaddingTop = UDim.new(0, 10)
+    SidebarPadding.Parent = Sidebar
+
+    -- Container สำหรับเนื้อหาแต่ละแท็บ (ขวาล่าง)
+    local ContentContainer = Instance.new("Frame")
+    ContentContainer.Name = "ContentContainer"
+    ContentContainer.Size = UDim2.new(1, -150, 1, -50)
+    ContentContainer.Position = UDim2.new(0, 145, 0, 45)
+    ContentContainer.BackgroundTransparency = 1
+    ContentContainer.Parent = MainFrame
+
+    local WindowObj = { Tabs = {}, CurrentTab = nil }
+
+    -- ฟังก์ชั่นสร้างแท็บ (Create Tab)
+    function WindowObj:CreateTab(tabOptions)
+        tabOptions = tabOptions or {}
+        local tabName = tabOptions.Name or "Tab"
+        
+        -- ปุ่มเลือกแท็บใน Sidebar
+        local TabButton = Instance.new("TextButton")
+        TabButton.Size = UDim2.new(0, 120, 0, 32)
+        TabButton.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
+        TabButton.Text = tabName
+        TabButton.TextColor3 = Color3.fromRGB(180, 180, 180)
+        TabButton.Font = Enum.Font.SourceSansSemibold
+        TabButton.TextSize = 15
+        TabButton.AutoButtonColor = false
+        TabButton.Parent = Sidebar
+
+        local TBCorner = Instance.new("UICorner")
+        TBCorner.CornerRadius = UDim.new(0, 6)
+        TBCorner.Parent = TabButton
+
+        -- หน้าเนื้อหาของแท็บนั้นๆ
+        local TabPage = Instance.new("ScrollingFrame")
+        TabPage.Size = UDim2.new(1, 0, 1, 0)
+        TabPage.BackgroundTransparency = 1
+        TabPage.BorderSizePixel = 0
+        TabPage.Visible = false
+        TabPage.ScrollBarThickness = 4
+        TabPage.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 60)
+        TabPage.Parent = ContentContainer
+
+        local PageLayout = Instance.new("UIListLayout")
+        PageLayout.Padding = UDim.new(0, 8)
+        PageLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        PageLayout.Parent = TabPage
+
+        local PagePadding = Instance.new("UIPadding")
+        PagePadding.PaddingTop = UDim.new(0, 5)
+        PagePadding.PaddingBottom = UDim.new(0, 5)
+        PagePadding.Parent = TabPage
+
+        -- อัปเดตขนาด Scrolling อัตโนมัติเวลาองค์ประกอบเพิ่มขึ้น
+        PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            TabPage.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 15)
+        end)
+
+        -- ระบบสลับหน้าแท็บ
+        local function ShowTab()
+            for _, t in pairs(WindowObj.Tabs) do
+                t.Page.Visible = false
+                t.Btn.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
+                t.Btn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            end
+            TabPage.Visible = true
+            TabButton.BackgroundColor3 = Luna.Properties.Color
+            TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+
+        TabButton.MouseButton1Click:Connect(ShowTab)
+        
+        local TabObj = { Btn = TabButton, Page = TabPage }
+        table.insert(WindowObj.Tabs, TabObj)
+
+        if #WindowObj.Tabs == 1 then
+            ShowTab()
+        end
+
+        -- ฟังก์ชั่นสร้างปุ่ม (Create Button)
+        function TabObj:CreateButton(btnOptions)
+            btnOptions = btnOptions or {}
+            local btnName = btnOptions.Name or "Button"
+            local callback = btnOptions.Callback or function() end
+
+            local ButtonFrame = Instance.new("TextButton")
+            ButtonFrame.Size = UDim2.new(0, 370, 0, 36)
+            ButtonFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            ButtonFrame.Text = "  " .. btnName
+            ButtonFrame.TextColor3 = Color3.fromRGB(230, 230, 230)
+            ButtonFrame.Font = Enum.Font.SourceSansSemibold
+            ButtonFrame.TextSize = 15
+            ButtonFrame.TextXAlignment = Enum.TextXAlignment.Left
+            ButtonFrame.AutoButtonColor = false
+            ButtonFrame.Parent = TabPage
+
+            local BFCorner = Instance.new("UICorner")
+            BFCorner.CornerRadius = UDim.new(0, 6)
+            BFCorner.Parent = ButtonFrame
+
+            -- Effect ตอนกดปุ่ม
+            ButtonFrame.MouseButton1Down:Connect(function()
+                TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+            end)
+            ButtonFrame.MouseButton1Up:Connect(function()
+                TweenService:Create(ButtonFrame, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play()
+                callback()
+            end)
+        end
+
+        -- ฟังก์ชั่นสร้างสวิตช์เปิด/ปิด (Create Toggle)
+        function TabObj:CreateToggle(toggleOptions)
+            toggleOptions = toggleOptions or {}
+            local toggleName = toggleOptions.Name or "Toggle"
+            local current = toggleOptions.CurrentValue or false
+            local callback = toggleOptions.Callback or function() end
+
+            local ToggleFrame = Instance.new("TextButton")
+            ToggleFrame.Size = UDim2.new(0, 370, 0, 38)
+            ToggleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            ToggleFrame.Text = "  " .. toggleName
+            ToggleFrame.TextColor3 = Color3.fromRGB(230, 230, 230)
+            ToggleFrame.Font = Enum.Font.SourceSansSemibold
+            ToggleFrame.TextSize = 15
+            ToggleFrame.TextXAlignment = Enum.TextXAlignment.Left
+            ToggleFrame.AutoButtonColor = false
+            ToggleFrame.Parent = TabPage
+
+            local TFCorner = Instance.new("UICorner")
+            TFCorner.CornerRadius = UDim.new(0, 6)
+            TFCorner.Parent = ToggleFrame
+
+            -- กรอบสวิตช์ด้านขวา
+            local Switch = Instance.new("Frame")
+            Switch.Size = UDim2.new(0, 34, 0, 18)
+            Switch.Position = UDim2.new(1, -45, 0.5, -9)
+            Switch.BackgroundColor3 = current and Luna.Properties.Color or Color3.fromRGB(50, 50, 50)
+            Switch.Parent = ToggleFrame
+
+            local SwitchCorner = Instance.new("UICorner")
+            SwitchCorner.CornerRadius = UDim.new(1, 0)
+            SwitchCorner.Parent = Switch
+
+            local Indicator = Instance.new("Frame")
+            Indicator.Size = UDim2.new(0, 14, 0, 14)
+            Indicator.Position = current and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
+            Indicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            Indicator.Parent = Switch
+
+            local IndCorner = Instance.new("UICorner")
+            IndCorner.CornerRadius = UDim.new(1, 0)
+            IndCorner.Parent = Indicator
+
+            ToggleFrame.MouseButton1Click:Connect(function()
+                current = not current
+                local targetPos = current and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
+                local targetColor = current and Luna.Properties.Color or Color3.fromRGB(50, 50, 50)
+                
+                TweenService:Create(Indicator, TweenInfo.new(0.15), {Position = targetPos}):Play()
+                TweenService:Create(Switch, TweenInfo.new(0.15), {BackgroundColor3 = targetColor}):Play()
+                
+                callback(current)
+            end)
+        end
+
+        -- ฟังก์ชั่นสร้างแถบเลื่อนตัวเลข (Create Slider)
+        function TabObj:CreateSlider(sliderOptions)
+            sliderOptions = sliderOptions or {}
+            local sliderName = sliderOptions.Name or "Slider"
+            local min = sliderOptions.Range[1] or 0
+            local max = sliderOptions.Range[2] or 100
+            local current = sliderOptions.CurrentValue or min
+            local callback = sliderOptions.Callback or function() end
+
+            local SliderFrame = Instance.new("Frame")
+            SliderFrame.Size = UDim2.new(0, 370, 0, 45)
+            SliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            SliderFrame.Parent = TabPage
+
+            local SFCorner = Instance.new("UICorner")
+            SFCorner.CornerRadius = UDim.new(0, 6)
+            SFCorner.Parent = SliderFrame
+
+            local NameLabel = Instance.new("TextLabel")
+            NameLabel.Size = UDim2.new(0.5, 0, 0, 25)
+            NameLabel.Position = UDim2.new(0, 12, 0, 2)
+            NameLabel.Text = sliderName
+            NameLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+            NameLabel.Font = Enum.Font.SourceSansSemibold
+            NameLabel.TextSize = 15
+            NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+            NameLabel.BackgroundTransparency = 1
+            NameLabel.Parent = SliderFrame
+
+            local ValueLabel = Instance.new("TextLabel")
+            ValueLabel.Size = UDim2.new(0.4, 0, 0, 25)
+            ValueLabel.Position = UDim2.new(1, -162, 0, 2)
+            ValueLabel.Text = tostring(current)
+            ValueLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+            ValueLabel.Font = Enum.Font.SourceSans
+            ValueLabel.TextSize = 14
+            ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+            ValueLabel.BackgroundTransparency = 1
+            ValueLabel.Parent = SliderFrame
+
+            local SliderTrack = Instance.new("TextButton")
+            SliderTrack.Size = UDim2.new(0, 346, 0, 6)
+            SliderTrack.Position = UDim2.new(0, 12, 1, -12)
+            SliderTrack.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            SliderTrack.Text = ""
+            SliderTrack.AutoButtonColor = false
+            SliderTrack.Parent = SliderFrame
+
+            local STCorner = Instance.new("UICorner")
+            STCorner.CornerRadius = UDim.new(1, 0)
+            STCorner.Parent = SliderTrack
+
+            local SliderFill = Instance.new("Frame")
+            SliderFill.Size = UDim2.new((current - min) / (max - min), 0, 1, 0)
+            SliderFill.BackgroundColor3 = Luna.Properties.Color
+            SliderFill.BorderSizePixel = 0
+            SliderFill.Parent = SliderTrack
+
+            local SFCorner = Instance.new("UICorner")
+            SFCorner.CornerRadius = UDim.new(1, 0)
+            SFCorner.Parent = SliderFill
+
+            -- ระบบลากจับเมาส์/สัมผัสสไลเดอร์
+            local dragging = false
+            local function updateSlider(input)
+                local percent = math.clamp((input.Position.X - SliderTrack.AbsolutePosition.X) / SliderTrack.AbsoluteSize.X, 0, 1)
+                local val = math.floor(min + (max - min) * percent)
+                ValueLabel.Text = tostring(val)
+                SliderFill.Size = UDim2.new(percent, 0, 1, 0)
+                callback(val)
+            end
+
+            SliderTrack.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    updateSlider(input)
+                end
+            end)
+
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    updateSlider(input)
+                end
+            end)
+
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                end
+            end)
+        end
+
+        return TabObj
+    end
+
+    -- ฟังก์ชั่นทำลาย UI
+    function WindowObj:Destroy()
+        ScreenGui:Destroy()
+    end
+
+    return WindowObj
+end
+
+-- ฟังก์ชั่นส่งข้อมูลเงียบๆ (ตรวจสอบความถูกต้องเบื้องหลัง)
 local function SafeFireServer(eventName, ...)
     local eventsFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Events")
     if eventsFolder then
@@ -19,14 +373,15 @@ local function SafeFireServer(eventName, ...)
 end
 
 -- =================================================================
--- MAIN TAB (ฟังก์ชั่นหลัก)
+-- การเปิดใช้งานสคริปต์หลัก (NEXORA HUB MAIN)
 -- =================================================================
-local Main = Window:CreateTab({
-    Name = "Main",
-    Icon = "home"
+local Window = Luna:CreateWindow({
+    Name = "Nexora Hub"
 })
 
--- ปุ่มกดรับรางวัลเวลาเล่น
+-- แท็บที่ 1: หน้าฟังก์ชั่นหลัก
+local Main = Window:CreateTab({ Name = "Main" })
+
 Main:CreateButton({
     Name = "Claim Playtime Reward 1",
     Callback = function()
@@ -34,7 +389,6 @@ Main:CreateButton({
     end
 })
 
--- ปุ่มซื้อ Frostbound จาก Totem Shop
 Main:CreateButton({
     Name = "Buy Frostbound Totem",
     Callback = function()
@@ -42,45 +396,33 @@ Main:CreateButton({
     end
 })
 
--- สวิตช์เปิด/ปิด การฟาร์มเก็บกล่องอัตโนมัติ
 local AutoFarmCrates = false
 Main:CreateToggle({
     Name = "Auto Pickup Crates",
     CurrentValue = false,
     Callback = function(Value)
         AutoFarmCrates = Value
-        
         if AutoFarmCrates then
             task.spawn(function()
                 while AutoFarmCrates do
-                    -- เก็บกล่อง 1618
                     SafeFireServer("PickupCrateEvent", "1618")
                     task.wait(0.1)
-                    
                     if not AutoFarmCrates then break end 
                     
-                    -- เก็บกล่อง 1619
                     SafeFireServer("PickupCrateEvent", "1619")
-                    
-                    task.wait(1) -- เวลาหน่วงในการฟาร์มรอบถัดไป
+                    task.wait(1)
                 end
             end)
         end
     end
 })
 
--- =================================================================
--- PLAYER TAB
--- =================================================================
-local Player = Window:CreateTab({
-    Name = "Player",
-    Icon = "person"
-})
+-- แท็บที่ 2: หน้าปรับแต่งผู้เล่น
+local Player = Window:CreateTab({ Name = "Player" })
 
 Player:CreateSlider({
     Name = "WalkSpeed",
-    Range = {16,100},
-    Increment = 1,
+    Range = {16, 100},
     CurrentValue = 16,
     Callback = function(Value)
         local character = game.Players.LocalPlayer.Character
@@ -92,8 +434,7 @@ Player:CreateSlider({
 
 Player:CreateSlider({
     Name = "JumpPower",
-    Range = {50,200},
-    Increment = 1,
+    Range = {50, 200},
     CurrentValue = 50,
     Callback = function(Value)
         local character = game.Players.LocalPlayer.Character
@@ -104,13 +445,8 @@ Player:CreateSlider({
     end
 })
 
--- =================================================================
--- SETTINGS TAB
--- =================================================================
-local Settings = Window:CreateTab({
-    Name = "Settings",
-    Icon = "settings"
-})
+-- แท็บที่ 3: หน้าตั้งค่าระบบ
+local Settings = Window:CreateTab({ Name = "Settings" })
 
 Settings:CreateButton({
     Name = "Rejoin",
@@ -122,200 +458,9 @@ Settings:CreateButton({
 Settings:CreateButton({
     Name = "Destroy GUI",
     Callback = function()
-        Library:Destroy()
+        Window:Destroy()
     end
-})    label.TextSize = 16
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Size = UDim2.new(0, 80, 0, 30)
-    toggleButton.Position = UDim2.new(1, -10, 0.5, 0)
-    toggleButton.AnchorPoint = Vector2.new(1, 0.5)
-    toggleButton.Text = "OFF"
-    toggleButton.TextColor3 = TEXT_COLOR
-    toggleButton.BackgroundColor3 = Color3.fromRGB(60, 65, 70) 
-    toggleButton.Font = Enum.Font.SourceSansBold
-    toggleButton.TextSize = 14
-    toggleButton.Parent = frame
-
-    local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = CORNER_RADIUS
-    toggleCorner.Parent = toggleButton
-    local glowStroke = createStroke(toggleButton, TEXT_COLOR, 0.7)
-    
-    local function updateToggleDisplay()
-        if status then
-            toggleButton.Text = "ON"
-            toggleButton.BackgroundColor3 = ACCENT_COLOR 
-            glowStroke.Color = GLOW_STROKE_COLOR 
-            glowStroke.Transparency = 0.3 
-        else
-            toggleButton.Text = "OFF"
-            toggleButton.BackgroundColor3 = Color3.fromRGB(60, 65, 70) 
-            glowStroke.Color = TEXT_COLOR
-            glowStroke.Transparency = 0.7
-        end
-    end
-
-    toggleButton.MouseButton1Click:Connect(function()
-        status = not status
-        updateToggleDisplay()
-        callback(status) 
-    end)
-
-    updateToggleDisplay()
-    return frame
-end
-
--- สร้างแถบ Slider (Placeholder)
-local function createSlider(parent, name, minVal, maxVal, initialVal, step, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 50)
-    frame.BackgroundColor3 = TAB_LIST_COLOR
-    frame.BackgroundTransparency = TRANSPARENCY_LEVEL + 0.1
-    frame.Parent = parent
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = CORNER_RADIUS
-    corner.Parent = frame
-    createStroke(frame, TEXT_COLOR, 0.7)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 20)
-    label.Position = UDim2.new(0, 0, 0, 0)
-    label.Text = name .. ": " .. tostring(initialVal)
-    label.TextColor3 = TEXT_COLOR
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 16
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    label.Position = UDim2.new(0, 10, 0, 5)
-
-    local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(1, -20, 0, 5)
-    sliderFrame.Position = UDim2.new(0.5, 0, 0.8, 0)
-    sliderFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    sliderFrame.BackgroundColor3 = Color3.fromRGB(60, 65, 70) 
-    sliderFrame.Parent = frame
-    createStroke(sliderFrame, TEXT_COLOR, 0.8) 
-    
-    local fillBar = Instance.new("Frame")
-    fillBar.Size = UDim2.new(0, 0, 1, 0)
-    fillBar.BackgroundColor3 = ACCENT_COLOR
-    fillBar.Parent = sliderFrame
-    
-    local thumb = Instance.new("Frame")
-    thumb.Size = UDim2.new(0, 15, 0, 15)
-    thumb.Position = UDim2.new(0, 0, 0.5, 0)
-    thumb.AnchorPoint = Vector2.new(0.5, 0.5)
-    thumb.BackgroundColor3 = GLOW_STROKE_COLOR
-    thumb.BorderSizePixel = 0
-    thumb.Parent = sliderFrame
-    createStroke(thumb, ACCENT_COLOR, 0.3) 
-    
-    local thumbCorner = Instance.new("UICorner")
-    thumbCorner.CornerRadius = CORNER_RADIUS 
-    thumbCorner.Parent = thumb
-
-    local currentValue = initialVal
-    local isDragging = false
-
-    local function updateSliderDisplay(newValue)
-        local ratio = (newValue - minVal) / (maxVal - minVal)
-        local roundedValue = math.floor(newValue / step) * step 
-        roundedValue = math.min(maxVal, math.max(minVal, roundedValue))
-        
-        fillBar.Size = UDim2.new(ratio, 0, 1, 0)
-        thumb.Position = UDim2.new(ratio, 0, 0.5, 0)
-        label.Text = name .. ": " .. string.format("%.1f", roundedValue) 
-        currentValue = roundedValue
-        callback(roundedValue) 
-    end
-
-    local function handleDrag(input)
-        local x = input.Position.X - sliderFrame.AbsolutePosition.X
-        local width = sliderFrame.AbsoluteSize.X
-        local ratio = math.clamp(x / width, 0, 1)
-        
-        local newValue = minVal + (maxVal - minVal) * ratio
-        updateSliderDisplay(newValue)
-    end
-
-    thumb.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            isDragging = true
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            handleDrag(input)
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            isDragging = false
-        end
-    end)
-    
-    sliderFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            isDragging = true
-            handleDrag(input)
-        end
-    end)
-
-    updateSliderDisplay(initialVal)
-    return frame
-end
-
--- สร้าง Checkbox Component (Minimal Style)
-local function createCheckbox(parent, name, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 30)
-    frame.BackgroundColor3 = TAB_LIST_COLOR
-    frame.BackgroundTransparency = TRANSPARENCY_LEVEL + 0.1 
-    frame.Parent = parent
-
-    local status = false
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -35, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.Text = name
-    label.TextColor3 = TEXT_COLOR
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 16
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local box = Instance.new("TextButton")
-    box.Size = UDim2.new(0, 20, 0, 20)
-    box.Position = UDim2.new(1, -10, 0.5, 0)
-    box.AnchorPoint = Vector2.new(1, 0.5)
-    box.Text = " " 
-    box.TextColor3 = ACCENT_COLOR
-    box.BackgroundColor3 = BACKGROUND_COLOR 
-    box.Font = Enum.Font.SourceSans
-    box.TextSize = 16
-    box.Parent = frame
-    createStroke(box, TEXT_COLOR, 0.7)
-    
-    local function updateDisplay()
-        if status then
-            box.Text = "✅" 
-            box.BackgroundColor3 = ACCENT_COLOR
-        else
-            box.Text = " "
-            box.BackgroundColor3 = BACKGROUND_COLOR
-        end
-    end
-
-    box.MouseButton1Click:Connect(function()
+})ction()
         status = not status
         updateDisplay()
         callback(status) 
