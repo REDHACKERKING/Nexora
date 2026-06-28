@@ -64,43 +64,40 @@ function LunaCore:CreateWindow(configs)
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = Sidebar
 
-    -- 🔘 [เพิ่มใหม่] ปุ่มย่อ/ขยาย GUI (Minimize Button [-]) ที่แถบด้านบนขวา
-    local MinimizeBtn = Instance.new("TextButton")
-    MinimizeBtn.Name = "MinimizeButton"
-    MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-    MinimizeBtn.Position = UDim2.new(1, -40, 0, 10)
-    MinimizeBtn.BackgroundColor3 = Theme.CardColor
-    MinimizeBtn.Text = "-"
-    MinimizeBtn.TextColor3 = Theme.TextColor
-    MinimizeBtn.Font = Enum.Font.SourceSansBold
-    MinimizeBtn.TextSize = 20
-    MinimizeBtn.ZIndex = 10
-    MinimizeBtn.Parent = MainFrame
+    -- 1. สร้าง ScreenGui สำหรับปุ่มลอย (ถ้ามีอยู่แล้วไม่ต้องสร้างใหม่)
+local FloatingGui = Instance.new("ScreenGui")
+FloatingGui.Name = "NexoraFloatingGui"
+FloatingGui.ResetOnSpawn = false
+FloatingGui.Parent = game.CoreGui -- ใช้ CoreGui เพื่อความเสถียร
 
-    local MinCorner = Instance.new("UICorner")
-    MinCorner.CornerRadius = UDim.new(0, 6)
-    MinCorner.Parent = MinimizeBtn
+-- 2. สร้างปุ่มลอย
+local FloatingBtn = Instance.new("ImageButton")
+FloatingBtn.Name = "FloatingButton"
+FloatingBtn.Size = UDim2.new(0, 50, 0, 50)
+FloatingBtn.Position = UDim2.new(0.5, 0, 0.1, 0) -- ตำแหน่งกลางค่อนบน
+FloatingBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+FloatingBtn.Image = "rbxassetid://10723344605" -- 🖼️ ใส่ไอคอนของคุณที่นี่ (Asset ID)
+FloatingBtn.Draggable = true -- ทำให้ลากปุ่มไปมาได้
+FloatingBtn.Parent = FloatingGui
 
-    local UI_Toggled = true
-    local function ToggleUI()
-        UI_Toggled = not UI_Toggled
-        if UI_Toggled then
-            MainFrame:TweenSize(UDim2.new(0, 560, 0, 400), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.3, true)
-            Sidebar.Visible = true
-            MinimizeBtn.Text = "-"
-            for _, child in pairs(MainFrame:GetChildren()) do
-                if child.Name == "ContentHolder" then child.Visible = true end
-            end
-        else
-            MainFrame:TweenSize(UDim2.new(0, 560, 0, 50), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, 0.3, true)
-            Sidebar.Visible = false
-            MinimizeBtn.Text = "+"
-            for _, child in pairs(MainFrame:GetChildren()) do
-                if child.Name == "ContentHolder" then child.Visible = false end
-            end
-        end
+local BtnCorner = Instance.new("UICorner")
+BtnCorner.CornerRadius = UDim.new(1, 0) -- ปุ่มวงกลม
+BtnCorner.Parent = FloatingBtn
+
+-- 3. ฟังก์ชัน Toggle (เชื่อมกับ MainFrame ของคุณ)
+local UI_Toggled = true
+FloatingBtn.MouseButton1Click:Connect(function()
+    UI_Toggled = not UI_Toggled
+    
+    -- สมมติว่า MainFrame ของคุณถูกประกาศไว้แล้ว
+    if UI_Toggled then
+        MainFrame.Visible = true
+        FloatingBtn.ImageTransparency = 0 -- ปุ่มชัดขึ้น
+    else
+        MainFrame.Visible = false
+        FloatingBtn.ImageTransparency = 0.5 -- ปุ่มจางลงเมื่อปิดเมนู
     end
-    MinimizeBtn.MouseButton1Click:Connect(ToggleUI)
+end)
 
     -- บอร์ดรวมปุ่มเมนูย่อยด้านซ้าย (Tab Holder)
     local TabHolder = Instance.new("ScrollingFrame")
