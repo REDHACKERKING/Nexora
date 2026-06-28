@@ -1,66 +1,130 @@
---[[
-    Nexora Hub V2.0 (Clean): Base Holographic UI, No Load, No Stroke Overlap
-    - FIX: Adjusted sizes and positions to prevent UIStroke (glow lines) from overlapping or extending past boundaries.
-    - Style: Holographic Robotics (Cyan/Teal) with 2-Column Layout.
-]]
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/x2Swiftz/UI-Library/refs/heads/main/Libraries/CompKiller%20-%20Library.lua"))()
 
--- === Global Configuration ===
-local GUI_NAME = "NEXORA // H U B V2.0"
-local BACKGROUND_COLOR = Color3.fromRGB(30, 35, 40)    
-local TAB_LIST_COLOR = Color3.fromRGB(45, 50, 55)      
-local ACCENT_COLOR = Color3.fromRGB(0, 255, 180)       
-local TEXT_COLOR = Color3.fromRGB(220, 240, 255)       
-local GLOW_STROKE_COLOR = Color3.fromRGB(0, 200, 150)  
-local TRANSPARENCY_LEVEL = 0.75                        
-local CORNER_RADIUS = UDim.new(0, 0)                   
-local CONTENT_PADDING = 12 
+local Window = Library:CreateWindow({
+    Name = "My Hub",
+    Subtitle = "By Phone",
+    LogoID = "6031280882",
+    LoadingEnabled = true
+})
 
--- === Roblox Services & Variables ===
-local Player = game.Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-
-local tabButtons = {}
-local tabContents = {}
-
--- === 1. HELPER FUNCTIONS ===
-
--- สร้างเส้นขอบ UIStroke
-local function createStroke(parent, color, transparency)
-    local stroke = Instance.new("UIStroke")
-    stroke.Thickness = 1
-    stroke.Color = color
-    stroke.Transparency = transparency
-    stroke.LineJoinMode = Enum.LineJoinMode.Miter 
-    stroke.Parent = parent
-    return stroke
+-- ฟังก์ชั่นตรวจสอบความถูกต้องเงียบๆ ก่อนส่งข้อมูล
+local function SafeFireServer(eventName, ...)
+    local eventsFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Events")
+    if eventsFolder then
+        local event = eventsFolder:FindFirstChild(eventName)
+        if event and event:IsA("RemoteEvent") then
+            event:FireServer(...)
+        end
+    end
 end
 
--- สร้างปุ่ม Toggle (Placeholder)
-local function createToggle(parent, name, description, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 40)
-    frame.BackgroundColor3 = TAB_LIST_COLOR
-    frame.BackgroundTransparency = TRANSPARENCY_LEVEL + 0.1 
-    frame.Parent = parent
+-- =================================================================
+-- MAIN TAB (ฟังก์ชั่นหลัก)
+-- =================================================================
+local Main = Window:CreateTab({
+    Name = "Main",
+    Icon = "home"
+})
 
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = CORNER_RADIUS
-    corner.Parent = frame
-    createStroke(frame, TEXT_COLOR, 0.7) 
+-- ปุ่มกดรับรางวัลเวลาเล่น
+Main:CreateButton({
+    Name = "Claim Playtime Reward 1",
+    Callback = function()
+        SafeFireServer("PlaytimeRewardUpdateEvent", "1")
+    end
+})
 
-    local status = false
+-- ปุ่มซื้อ Frostbound จาก Totem Shop
+Main:CreateButton({
+    Name = "Buy Frostbound Totem",
+    Callback = function()
+        SafeFireServer("TotemShopPurchaseEvent", "Frostbound")
+    end
+})
 
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.7, 0, 1, 0)
-    label.Position = UDim2.new(0, 10, 0, 0)
-    label.Text = name .. " (" .. description .. ")"
-    label.TextColor3 = TEXT_COLOR
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 16
+-- สวิตช์เปิด/ปิด การฟาร์มเก็บกล่องอัตโนมัติ
+local AutoFarmCrates = false
+Main:CreateToggle({
+    Name = "Auto Pickup Crates",
+    CurrentValue = false,
+    Callback = function(Value)
+        AutoFarmCrates = Value
+        
+        if AutoFarmCrates then
+            task.spawn(function()
+                while AutoFarmCrates do
+                    -- เก็บกล่อง 1618
+                    SafeFireServer("PickupCrateEvent", "1618")
+                    task.wait(0.1)
+                    
+                    if not AutoFarmCrates then break end 
+                    
+                    -- เก็บกล่อง 1619
+                    SafeFireServer("PickupCrateEvent", "1619")
+                    
+                    task.wait(1) -- เวลาหน่วงในการฟาร์มรอบถัดไป
+                end
+            end)
+        end
+    end
+})
+
+-- =================================================================
+-- PLAYER TAB
+-- =================================================================
+local Player = Window:CreateTab({
+    Name = "Player",
+    Icon = "person"
+})
+
+Player:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16,100},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(Value)
+        local character = game.Players.LocalPlayer.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.WalkSpeed = Value
+        end
+    end
+})
+
+Player:CreateSlider({
+    Name = "JumpPower",
+    Range = {50,200},
+    Increment = 1,
+    CurrentValue = 50,
+    Callback = function(Value)
+        local character = game.Players.LocalPlayer.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.UseJumpPower = true
+            character.Humanoid.JumpPower = Value
+        end
+    end
+})
+
+-- =================================================================
+-- SETTINGS TAB
+-- =================================================================
+local Settings = Window:CreateTab({
+    Name = "Settings",
+    Icon = "settings"
+})
+
+Settings:CreateButton({
+    Name = "Rejoin",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+    end
+})
+
+Settings:CreateButton({
+    Name = "Destroy GUI",
+    Callback = function()
+        Library:Destroy()
+    end
+})    label.TextSize = 16
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = frame
 
