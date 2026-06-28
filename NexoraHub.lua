@@ -1,8 +1,7 @@
 -- =================================================================
--- Nexora Hub - Full Version
+-- Nexora Hub - Full Version (Fixed)
 -- =================================================================
 
--- 1. โหลด Library (เพิ่ม pcall เพื่อป้องกันสคริปต์หยุดทำงาน)
 local url = "https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/LunaLib.lua"
 local success, Luna = pcall(function() return loadstring(game:HttpGet(url .. "?nocache=" .. tostring(tick())))() end)
 
@@ -13,7 +12,6 @@ end
 
 local Window = Luna:CreateWindow()
 
--- ฟังก์ชันส่วนกลางสำหรับการส่ง Event
 local function SafeFireServer(eventName, ...)
     local event = game:GetService("ReplicatedStorage"):WaitForChild("Events"):FindFirstChild(eventName)
     if event then
@@ -23,9 +21,7 @@ local function SafeFireServer(eventName, ...)
     end
 end
 
--- =================================================================
--- 🛒 TAB 1: SHOP
--- =================================================================
+-- Tab 1: Shop
 local ShopTab = Window:CreateTab({ Name = "Shop" })
 local AutoBuyTotem = false
 ShopTab:CreateToggle({
@@ -42,9 +38,7 @@ ShopTab:CreateToggle({
     end
 })
 
--- =================================================================
--- 📦 TAB 2: FARM
--- =================================================================
+-- Tab 2: Farm
 local FarmTab = Window:CreateTab({ Name = "Farm" })
 local AutoFarmCrates = false
 FarmTab:CreateToggle({
@@ -69,7 +63,8 @@ FarmTab:CreateToggle({
         end)
     end
 })
-local  local AutoClaimRewards = false
+
+local AutoClaimRewards = false
 FarmTab:CreateToggle({
     Name = "Auto Claim Playtime Rewards",
     CurrentValue = false,
@@ -86,12 +81,11 @@ FarmTab:CreateToggle({
         end)
     end
 })
--- =================================================================
--- 🥚 TAB 3: SPINS
--- =================================================================
-local SpinWhee = Window:CreateTab({ Name = "SpinWhee" })
+
+-- Tab 3: Spins
+local SpinTab = Window:CreateTab({ Name = "Spins" })
 local AutoSpinWheel = false
-EggTab:CreateToggle({
+SpinTab:CreateToggle({
     Name = "Auto Spin Wheel",
     CurrentValue = false,
     Callback = function(Value)
@@ -107,9 +101,7 @@ EggTab:CreateToggle({
     end
 })
 
--- =================================================================
--- 👤 TAB 4: PLAYER
--- =================================================================
+-- Tab 4: Player
 local PlayerTab = Window:CreateTab({ Name = "Player" })
 PlayerTab:CreateSlider({
     Name = "WalkSpeed",
@@ -121,10 +113,8 @@ PlayerTab:CreateSlider({
     end
 })
 
--- =================================================================
--- ⚙️ TAB 5: SYSTEM
--- =================================================================
-local SystemTab = Window:CreateTab({ Name = "System" })aaà
+-- Tab 5: System
+local SystemTab = Window:CreateTab({ Name = "System" })
 SystemTab:CreateButton({
     Name = "FPS Boost",
     Callback = function()
@@ -135,21 +125,9 @@ SystemTab:CreateButton({
     end
 })
 
-SystemTab:CreateButton({
-    Name = "Server Hop",
-    Callback = function()
-        local servers = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-        for _, s in pairs(servers.data) do
-            if s.playing < s.maxPlayers and s.id ~= game.JobId then
-                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, s.id)
-            end
-        end
-    end
-})
-
-local AutoSpinWheel = false
+local HideSpinAndEggGUI = false
 SystemTab:CreateToggle({
-    Name = "Auto Hide Egg & Spin GUI",
+    Name = "Auto Hide GUI",
     CurrentValue = false,
     Callback = function(Value)
         HideSpinAndEggGUI = Value
@@ -158,7 +136,7 @@ SystemTab:CreateToggle({
                 local playerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
                 if playerGui then
                     for _, gui in pairs(playerGui:GetChildren()) do
-                        if gui:IsA("ScreenGui") and string.find(string.lower(gui.Name), "egg") or string.find(string.lower(gui.Name), "spin") then
+                        if gui:IsA("ScreenGui") and (string.find(string.lower(gui.Name), "egg") or string.find(string.lower(gui.Name), "spin")) then
                             if gui.Name ~= "LunaUI" then gui.Enabled = false end
                         end
                     end
