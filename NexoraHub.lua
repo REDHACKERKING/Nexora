@@ -1,5 +1,5 @@
 -- =================================================================
--- Nexora Hub - Full Version (Fixed)
+-- Nexora Hub - Full Version (Optimized & Fixed)
 -- =================================================================
 
 local url = "https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/LunaLib.lua"
@@ -12,6 +12,7 @@ end
 
 local Window = Luna:CreateWindow()
 
+-- ฟังก์ชันส่วนกลางสำหรับการส่ง Event
 local function SafeFireServer(eventName, ...)
     local event = game:GetService("ReplicatedStorage"):WaitForChild("Events"):FindFirstChild(eventName)
     if event then
@@ -21,7 +22,9 @@ local function SafeFireServer(eventName, ...)
     end
 end
 
--- Tab 1: Shop
+-- =================================================================
+-- TAB 1: SHOP
+-- =================================================================
 local ShopTab = Window:CreateTab({ Name = "Shop" })
 local AutoBuyTotem = false
 ShopTab:CreateToggle({
@@ -38,34 +41,30 @@ ShopTab:CreateToggle({
     end
 })
 
--- Tab 2: Farm
-local AutoFarmEnabled = false -- ตัวแปรควบคุมการทำงาน
-local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
-local PickupEvent = Events:WaitForChild("PickupCrateEvent")
+-- =================================================================
+-- TAB 2: FARM (Auto Pickup Real-time)
+-- =================================================================
+local FarmTab = Window:CreateTab({ Name = "Farm" })
+local AutoFarmEnabled = false
 
--- ฟังก์ชันที่ใช้ดักจับ
-local function OnDescendantAdded(obj)
+-- ระบบดักจับกล่องที่เกิดใหม่
+workspace.DescendantAdded:Connect(function(obj)
     if AutoFarmEnabled and tonumber(obj.Name) then
-        task.wait(0.5) -- รอให้กล่องเกิดสมบูรณ์ก่อนเก็บ
-        PickupEvent:FireServer(obj.Name)
-        print("Auto Pickup:", obj.Name)
+        task.wait(0.5)
+        SafeFireServer("PickupCrateEvent", obj.Name)
     end
-end
+end)
 
--- เชื่อมต่อกับเหตุการณ์ของ Workspace
-workspace.DescendantAdded:Connect(OnDescendantAdded)
-
--- ส่วนของ UI (ใส่ไว้ใน Tab)
 FarmTab:CreateToggle({
-    Name = "Auto Pickup (Real-time)",
+    Name = "Auto Pickup All Crates",
     CurrentValue = false,
     Callback = function(Value)
         AutoFarmEnabled = Value
         if AutoFarmEnabled then
-            -- เมื่อเปิดใช้งาน ให้ลองสแกนของที่มีอยู่ก่อนแล้วรอบหนึ่ง
+            -- สแกนของที่มีอยู่ก่อนเปิดโหมด
             for _, obj in pairs(workspace:GetDescendants()) do
                 if tonumber(obj.Name) then
-                    PickupEvent:FireServer(obj.Name)
+                    SafeFireServer("PickupCrateEvent", obj.Name)
                     task.wait(0.1)
                 end
             end
@@ -91,7 +90,9 @@ FarmTab:CreateToggle({
     end
 })
 
--- Tab 3: Spins
+-- =================================================================
+-- TAB 3: SPINS
+-- =================================================================
 local SpinTab = Window:CreateTab({ Name = "Spins" })
 local AutoSpinWheel = false
 SpinTab:CreateToggle({
@@ -110,7 +111,9 @@ SpinTab:CreateToggle({
     end
 })
 
--- Tab 4: Player
+-- =================================================================
+-- TAB 4: PLAYER
+-- =================================================================
 local PlayerTab = Window:CreateTab({ Name = "Player" })
 PlayerTab:CreateSlider({
     Name = "WalkSpeed",
@@ -122,7 +125,9 @@ PlayerTab:CreateSlider({
     end
 })
 
--- Tab 5: System
+-- =================================================================
+-- TAB 5: SYSTEM
+-- =================================================================
 local SystemTab = Window:CreateTab({ Name = "System" })
 SystemTab:CreateButton({
     Name = "FPS Boost",
@@ -134,14 +139,30 @@ SystemTab:CreateButton({
     end
 })
 
-local HideSpinAndEggGUI = false
+SystemTab:CreateButton({
+    Name = "Server Hop",
+    Callback = function()
+        local success, servers = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        end)
+        if success and servers then
+            for _, s in pairs(servers.data) do
+                if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                    game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, s.id)
+                end
+            end
+        end
+    end
+})
+
+local HideGUI = false
 SystemTab:CreateToggle({
-    Name = "Auto Hide GUI",
+    Name = "Auto Hide Egg & Spin GUI",
     CurrentValue = false,
     Callback = function(Value)
-        HideSpinAndEggGUI = Value
+        HideGUI = Value
         task.spawn(function()
-            while HideSpinAndEggGUI do
+            while HideGUI do
                 local playerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
                 if playerGui then
                     for _, gui in pairs(playerGui:GetChildren()) do
