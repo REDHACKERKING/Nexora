@@ -1,7 +1,7 @@
 -- [[ Luna Interface Suite - ฉบับปรับปรุงดีไซน์ + เพิ่ม Profile Card ด้านซ้ายล่าง ]]
 local success, result = pcall(function()
     -- 🔗 ดึง Core หลักของ Luna มาประมวลผลภายใน
-    local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/source.lua"))()
+    local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/refs/heads/main/source.lua"))()
     
     local CustomLuna = {}
     for k, v in pairs(Luna) do
