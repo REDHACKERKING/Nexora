@@ -1,9 +1,9 @@
--- 🔗 ดึงไลเบอรีส่วนตัวตามปกติ (ไม่แก้ไขโครงสร้างไลเบอรีใดๆ)
+-- 🔗 ดึงจากไลเบอรีพรีเมียมผ่าน GitHub ของคุณตามปกติ
 local url = "https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/LunaLib.lua"
 local freshUrl = url .. "?nocache=" .. tostring(tick())
 local Luna = loadstring(game:HttpGet(freshUrl))()
 
--- ฟังก์ชั่นส่งข้อมูลเบื้องหลัง
+-- ฟังก์ชั่นยิง Remote เบื้องหลัง
 local function SafeFireServer(eventName, ...)
     local eventsFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Events")
     if eventsFolder then
@@ -14,22 +14,17 @@ local function SafeFireServer(eventName, ...)
     end
 end
 
--- เปิดใช้งาน UI ตัวเต็มโดยใช้ฟังก์ชันจาก source ของคุณ
-local Window = Luna:CreateWindow({
-    Name = "COMPKILLER",
-    Subtitle = "Nexora Hub Premium v2.5",
-    Color = Color3.fromRGB(0, 220, 255),
-    CornerRadius = 6
-})
+-- สร้างหน้าต่างโปรแกรม
+local Window = Luna:CreateWindow()
 
 -- =================================================================
--- 🛒 TAB 1: SHOP AUTO BUY (ระบบซื้อสินค้าอัตโนมัติ)
+-- 🛒 TAB 1: SHOP AUTO BUY
 -- =================================================================
 local ShopTab = Window:CreateTab({ Name = "Shop Auto Buy" })
 
 local AutoBuyTotem = false
 ShopTab:CreateToggle({
-    Name = "Auto Buy Frostbound Totem (เปิด/ปิด)",
+    Name = "Auto Buy Frostbound Totem",
     CurrentValue = false,
     Callback = function(Value)
         AutoBuyTotem = Value
@@ -45,7 +40,7 @@ ShopTab:CreateToggle({
 })
 
 -- =================================================================
--- 📦 TAB 2: FARM & DROPS (ระบบฟาร์มของและไอเทมตกพื้น)
+-- 📦 TAB 2: FARM & DROPS
 -- =================================================================
 local FarmTab = Window:CreateTab({ Name = "Farm & Drops" })
 
@@ -79,7 +74,7 @@ FarmTab:CreateToggle({
 
 local AutoClaimRewards = false
 FarmTab:CreateToggle({
-    Name = "Auto Claim Playtime Rewards (รับรางวัลเวลาออนไลน์)",
+    Name = "Auto Claim Playtime Rewards",
     CurrentValue = false,
     Callback = function(Value)
         AutoClaimRewards = Value
@@ -98,12 +93,12 @@ FarmTab:CreateToggle({
 })
 
 -- =================================================================
--- 🥚 TAB 3: EGGS & SPINS (ระบบเปิดไข่และสุ่มวงล้อ)
+-- 🥚 TAB 3: EGGS & SPINS
 -- =================================================================
 local EggTab = Window:CreateTab({ Name = "Eggs & Spins" })
 
 EggTab:CreateButton({
-    Name = "Open Backpack Eggs (เปิดไข่ทั้งหมดในกระเป๋า)",
+    Name = "Open Backpack Eggs (All)",
     Callback = function()
         local eggIDs = {"1623", "1137"}
         for _, id in pairs(eggIDs) do
@@ -115,7 +110,7 @@ EggTab:CreateButton({
 
 local AutoSpinWheel = false
 EggTab:CreateToggle({
-    Name = "Auto Spin Wheel (หมุนวงล้อออโต้)",
+    Name = "Auto Spin Wheel (หมุนสปินออโต้)",
     CurrentValue = false,
     Callback = function(Value)
         AutoSpinWheel = Value
@@ -133,12 +128,12 @@ EggTab:CreateToggle({
 })
 
 -- =================================================================
--- 👤 TAB 4: PLAYER MOD (ปรับแต่งค่าตัวละคร)
+-- 👤 TAB 4: PLAYER MOD
 -- =================================================================
 local PlayerTab = Window:CreateTab({ Name = "Player Mod" })
 
 PlayerTab:CreateSlider({
-    Name = "WalkSpeed (ความเร็วการเดิน)",
+    Name = "WalkSpeed",
     Range = {16, 100},
     CurrentValue = 16,
     Callback = function(Value)
@@ -150,7 +145,7 @@ PlayerTab:CreateSlider({
 })
 
 PlayerTab:CreateSlider({
-    Name = "JumpPower (แรงกระโดด)",
+    Name = "JumpPower",
     Range = {50, 200},
     CurrentValue = 50,
     Callback = function(Value)
@@ -163,13 +158,13 @@ PlayerTab:CreateSlider({
 })
 
 -- =================================================================
--- ⚙️ TAB 5: SYSTEM & PROTECTION (ระบบเสถียรภาพและตั้งค่า UI)
+-- ⚙️ TAB 5: SYSTEM & SETTINGS
 -- =================================================================
 local SystemTab = Window:CreateTab({ Name = "System & Settings" })
 
 local HideSpinAndEggGUI = false
 SystemTab:CreateToggle({
-    Name = "Auto Hide Egg & Spin GUI (ซ่อนหน้าต่างสุ่มของเกม)",
+    Name = "Auto Hide Egg & Spin GUI",
     CurrentValue = false,
     Callback = function(Value)
         HideSpinAndEggGUI = Value
@@ -182,7 +177,7 @@ SystemTab:CreateToggle({
                             if gui:IsA("ScreenGui") then
                                 local nameLower = string.lower(gui.Name)
                                 if string.find(nameLower, "egg") or string.find(nameLower, "spin") or string.find(nameLower, "wheel") or string.find(nameLower, "open") or string.find(nameLower, "anim") then
-                                    if gui.Name ~= "Luna" and gui.Name ~= "LunaUI" and gui.Name ~= "LunaInterface" then
+                                    if gui.Name ~= "LunaUI" and gui.Name ~= "Luna" then
                                         if gui.Enabled == true then
                                             gui.Enabled = false
                                         end
@@ -229,7 +224,6 @@ SystemTab:CreateButton({
     end
 })
 
--- ระบบป้องกันเตะออกเมื่อยืนนิ่งนาน (Anti-AFK)
 local AntiAFKEnabled = true
 local vu = game:GetService("VirtualUser")
 game:GetService("Players").LocalPlayer.Idled:Connect(function()
@@ -241,7 +235,7 @@ game:GetService("Players").LocalPlayer.Idled:Connect(function()
 end)
 
 SystemTab:CreateButton({
-    Name = "Server Hop (ย้ายเซิร์ฟเวอร์หาห้องใหม่)",
+    Name = "Server Hop (ย้ายเซิร์ฟเวอร์)",
     Callback = function()
         local HttpService = game:GetService("HttpService")
         local TeleportService = game:GetService("TeleportService")
@@ -254,6 +248,26 @@ SystemTab:CreateButton({
                 if server.playing < server.maxPlayers and server.id ~= game.JobId then
                     TeleportService:TeleportToPlaceInstance(PlaceId, server.id, game.Players.LocalPlayer)
                     break
+                end
+            end
+        end
+    end
+})
+
+SystemTab:CreateButton({
+    Name = "Rejoin Server",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+    end
+})
+
+SystemTab:CreateButton({
+    Name = "Destroy GUI",
+    Callback = function()
+        AntiAFKEnabled = false
+        Window:Destroy()
+    end
+})                    break
                 end
             end
         end
