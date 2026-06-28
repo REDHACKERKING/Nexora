@@ -39,28 +39,37 @@ ShopTab:CreateToggle({
 })
 
 -- Tab 2: Farm
-local FarmTab = Window:CreateTab({ Name = "Farm" })
-local AutoFarmCrates = false
+local AutoFarmEnabled = false -- ตัวแปรควบคุมการทำงาน
+local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
+local PickupEvent = Events:WaitForChild("PickupCrateEvent")
+
+-- ฟังก์ชันที่ใช้ดักจับ
+local function OnDescendantAdded(obj)
+    if AutoFarmEnabled and tonumber(obj.Name) then
+        task.wait(0.5) -- รอให้กล่องเกิดสมบูรณ์ก่อนเก็บ
+        PickupEvent:FireServer(obj.Name)
+        print("Auto Pickup:", obj.Name)
+    end
+end
+
+-- เชื่อมต่อกับเหตุการณ์ของ Workspace
+workspace.DescendantAdded:Connect(OnDescendantAdded)
+
+-- ส่วนของ UI (ใส่ไว้ใน Tab)
 FarmTab:CreateToggle({
-    Name = "Auto Pickup All Crates",
+    Name = "Auto Pickup (Real-time)",
     CurrentValue = false,
     Callback = function(Value)
-        AutoFarmCrates = Value
-        task.spawn(function()
-            while AutoFarmCrates do
-                local folder = workspace:FindFirstChild("Crates") or workspace:FindFirstChild("Drops")
-                if folder then
-                    for _, obj in pairs(folder:GetChildren()) do
-                        if not AutoFarmCrates then break end
-                        if tonumber(obj.Name) then
-                            SafeFireServer("PickupCrateEvent", obj.Name)
-                            task.wait(0.05)
-                        end
-                    end
+        AutoFarmEnabled = Value
+        if AutoFarmEnabled then
+            -- เมื่อเปิดใช้งาน ให้ลองสแกนของที่มีอยู่ก่อนแล้วรอบหนึ่ง
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if tonumber(obj.Name) then
+                    PickupEvent:FireServer(obj.Name)
+                    task.wait(0.1)
                 end
-                task.wait(0.3)
             end
-        end)
+        end
     end
 })
 
