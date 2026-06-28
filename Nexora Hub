@@ -1,66 +1,112 @@
--- =================================================================
--- LUNA INTERFACE SUITE (UI LIBRARY - EMBEDDED)
--- =================================================================
-local Luna = {
-    Elements = {},
-    Properties = {
-        Color = Color3.fromRGB(44, 122, 232),
-        WindowCount = 0
-    }
-}
+-- 🔗 ดึง UI ไลเบอรีส่วนตัวที่คุณแยกไว้ (อย่าลืมเปลี่ยนลิงก์เป็นบัญชีของคุณเอง)
+local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/LunaLib.lua?t=" .. os.time()))()
 
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-
-function Luna:CreateWindow(options)
-    options = options or {}
-    local windowTitle = options.Name or "Luna Interface"
-    
-    -- ลบ UI เก่าที่ชื่อซ้ำกันออกก่อนเพื่อป้องกันการซ้อนกัน
-    if CoreGui:FindFirstChild("LunaUI") then
-        CoreGui:FindFirstChild("LunaUI"):Destroy()
+-- ฟังก์ชั่นส่งข้อมูลเบื้องหลัง
+local function SafeFireServer(eventName, ...)
+    local eventsFolder = game:GetService("ReplicatedStorage"):FindFirstChild("Events")
+    if eventsFolder then
+        local event = eventsFolder:FindFirstChild(eventName)
+        if event and event:IsA("RemoteEvent") then
+            event:FireServer(...)
+        end
     end
+end
 
-    -- สร้าง Core ScreenGui
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "LunaUI"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
-    -- ตรวจสอบความปลอดภัยระดับการรันระดับ Executor
-    if syn and syn.protect_gui then
-        syn.protect_gui(ScreenGui)
-        ScreenGui.Parent = CoreGui
-    elseif gethui then
-        ScreenGui.Parent = gethui()
-    else
-        ScreenGui.Parent = CoreGui
+-- เปิดใช้งาน UI
+local Window = Luna:CreateWindow({ Name = "Nexora Hub" })
+
+-- =================================================================
+-- MAIN TAB
+-- =================================================================
+local Main = Window:CreateTab({ Name = "Main" })
+
+Main:CreateButton({
+    Name = "Claim Playtime Reward 1",
+    Callback = function()
+        SafeFireServer("PlaytimeRewardUpdateEvent", "1")
     end
+})
 
-    -- Main Window Frame
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 550, 0, 350)
-    MainFrame.Position = UDim2.new(0.5, -275, 0.5, -175)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Active = true
-    MainFrame.Draggable = true -- รองรับการลากบนมือถือ/คอมพิวเตอร์
-    MainFrame.Parent = ScreenGui
+Main:CreateButton({
+    Name = "Buy Frostbound Totem",
+    Callback = function()
+        SafeFireServer("TotemShopPurchaseEvent", "Frostbound")
+    end
+})
 
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 8)
-    UICorner.Parent = MainFrame
+-- ระบบสแกนและฟาร์มกล่องอัจฉริยะ (เก็บเลขอะไรก็ได้ที่คุณป้อนในตาราง)
+local AutoFarmCrates = false
+Main:CreateToggle({
+    Name = "Auto Pickup ALL Crates",
+    CurrentValue = false,
+    Callback = function(Value)
+        AutoFarmCrates = Value
+        if AutoFarmCrates then
+            task.spawn(function()
+                while AutoFarmCrates do
+                    -- 📝 คุณสามารถเพิ่มเลขกล่องใหม่ๆ ต่อท้ายในวงเล็บนี้ได้เรื่อยๆ เลยครับ
+                    local manualList = {"1618", "1619", "1623", "1624", "1625", "1626"} 
+                    
+                    for _, id in pairs(manualList) do
+                        if not AutoFarmCrates then break end
+                        SafeFireServer("PickupCrateEvent", id)
+                        task.wait(0.02) -- ความเร็วในการส่งข้อมูลต่อหนึ่งกล่อง
+                    end
+                    task.wait(0.2) -- ระยะเวลาหน่วงสั้นๆ ก่อนวนซ้ำรอบถัดไป
+                end
+            end)
+        end
+    end
+})
 
-    -- Topbar (แถบด้านบน)
-    local Topbar = Instance.new("Frame")
-    Topbar.Name = "Topbar"
-    Topbar.Size = UDim2.new(1, 0, 0, 40)
-    Topbar.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
-    Topbar.BorderSizePixel = 0
-    Topbar.Parent = MainFrame
+-- =================================================================
+-- PLAYER TAB
+-- =================================================================
+local Player = Window:CreateTab({ Name = "Player" })
 
+Player:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 100},
+    CurrentValue = 16,
+    Callback = function(Value)
+        local character = game.Players.LocalPlayer.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.WalkSpeed = Value
+        end
+    end
+})
+
+Player:CreateSlider({
+    Name = "JumpPower",
+    Range = {50, 200},
+    CurrentValue = 50,
+    Callback = function(Value)
+        local character = game.Players.LocalPlayer.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.UseJumpPower = true
+            character.Humanoid.JumpPower = Value
+        end
+    end
+})
+
+-- =================================================================
+-- SETTINGS TAB
+-- =================================================================
+local Settings = Window:CreateTab({ Name = "Settings" })
+
+Settings:CreateButton({
+    Name = "Rejoin",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+    end
+})
+
+Settings:CreateButton({
+    Name = "Destroy GUI",
+    Callback = function()
+        Window:Destroy()
+    end
+})
     local TopbarCorner = Instance.new("UICorner")
     TopbarCorner.CornerRadius = UDim.new(0, 8)
     TopbarCorner.Parent = Topbar
