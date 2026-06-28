@@ -1,5 +1,5 @@
 -- 🔗 ดึง UI ไลเบอรีส่วนตัวที่คุณแยกไว้ (อย่าลืมเปลี่ยนลิงก์เป็นบัญชีของคุณเอง)
-local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/LunaLib.lua?t=" .. os.time()))()
+local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/refs/heads/main/LunaLib.lua" .. os.time()))()
 
 -- ฟังก์ชั่นส่งข้อมูลเบื้องหลัง
 local function SafeFireServer(eventName, ...)
