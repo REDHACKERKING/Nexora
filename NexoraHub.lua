@@ -43,36 +43,32 @@ ShopTab:CreateToggle({
 local FarmTab = Window:CreateTab({ Name = "Farm & Drops" })
 
 local AutoFarmCrates = false
-FarmTab:CreateToggle({
-    Name = "รับกล่องก็อปปี้อัตโนมัติ (Auto Pickup via Args)",
+Main:CreateToggle({
+    Name = "Auto Pickup All (Auto Scan)",
     CurrentValue = false,
     Callback = function(Value)
         AutoFarmCrates = Value
         if AutoFarmCrates then
             task.spawn(function()
                 while AutoFarmCrates do
-                    local cratesFolder = workspace:FindFirstChild("Crates") or workspace:FindFirstChild("Drops") or workspace
-                    if cratesFolder then
-                        for _, crate in pairs(cratesFolder:GetChildren()) do
+                    -- ระบุโฟลเดอร์ที่กล่องเกิด (ปรับชื่อให้ตรงกับใน Explorer)
+                    local folder = workspace:FindFirstChild("Crates") or workspace:FindFirstChild("Drops")
+                    
+                    if folder then
+                        -- วนลูปเช็ค Object ทุกชิ้นในโฟลเดอร์
+                        for _, obj in pairs(folder:GetChildren()) do
                             if not AutoFarmCrates then break end
                             
-                            local crateID = tonumber(crate.Name) or crate:GetAttribute("ID") or crate:GetAttribute("CrateID")
-                            
-                            if crateID or string.find(string.lower(crate.Name), "crate") or string.find(string.lower(crate.Name), "drop") then
-                                local finalID = tostring(crateID or crate.Name)
-                                
-                                -- 🛠️ ปรับโครงสร้างรับค่าจากกล่องทุกใบผ่าน Unpack Args
-                                local args = {
-                                    finalID
-                                }
-                                local pickupEvent = game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("PickupCrateEvent")
-                                if pickupEvent then
-                                    pickupEvent:FireServer(unpack(args))
-                                end
-                                task.wait(0.01)
+                            -- ตรวจสอบว่าชื่อ Object เป็นตัวเลข (เช่น "1618", "1635")
+                            -- วิธีนี้จะรองรับเลขทุกตัวที่เกมสร้างขึ้นมาใหม่โดยอัตโนมัติ
+                            if tonumber(obj.Name) then
+                                SafeFireServer("PickupCrateEvent", obj.Name)
+                                -- ใส่ delay สั้นๆ เพื่อไม่ให้เซิร์ฟเวอร์เตะ (Anti-Spam)
+                                task.wait(0.05) 
                             end
                         end
                     end
+                    -- รออีกนิดก่อนเริ่มสแกนรอบใหม่ เพื่อลดภาระเครื่อง
                     task.wait(0.3)
                 end
             end)
