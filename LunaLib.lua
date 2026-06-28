@@ -1,66 +1,106 @@
--- [[ Luna Interface Suite - ฉบับปรับปรุงดีไซน์ + เพิ่ม Profile Card ด้านซ้ายล่าง ]]
+-- [[ Luna Interface Suite - Premium Override with Profile Display ]]
 local success, result = pcall(function()
-    -- 🔗 ดึง Core หลักของ Luna มาประมวลผลภายใน
-    local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/refs/heads/main/source.lua"))()
+    -- 🔗 ดึงจากไฟล์ source.lua ท้องถิ่นโดยตรงเพื่อความถูกต้อง
+    local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/source.lua"))()
     
     local CustomLuna = {}
     for k, v in pairs(Luna) do
         CustomLuna[k] = v
     end
 
-    -- 🎨 ดักจับฟังก์ชันสร้างหน้าต่างเพื่อเขียนทับดีไซน์และแทรกการแสดงผลโปรไฟล์
     local originalCreateWindow = Luna.CreateWindow
     CustomLuna.CreateWindow = function(self, options)
         options = options or {}
-        options.Name = options.Name or "COMPKILLER"
-        options.Subtitle = options.Subtitle or "NEVER"
-        options.Icon = options.Icon or "rbxassetid://10815411700"
+        options.Name = "COMPKILLER"
+        options.Subtitle = "NEVER"
         
-        -- บังคับโค้ดสีจากภาพตัวอย่างสไตล์ Dark Cyan & Carbon เทาเข้ม
-        options.Color = Color3.fromRGB(0, 220, 255)         -- สีหลัก (Accent): ฟ้าไซอันนีออนสว่าง
-        options.TabColor = Color3.fromRGB(34, 49, 63)       -- แถบเมนูด้านข้าง: น้ำเงินอมเทาดำด้าน
-        options.Background = Color3.fromRGB(19, 20, 24)     -- พื้นหลังหลักของ UI: เทาดำไซเบอร์
-        options.CardColor = Color3.fromRGB(27, 28, 34)      -- พื้นหลังส่วนของ Section/ปุ่มกด: เทาเข้มโปร่งแสง
-        options.TextColor = Color3.fromRGB(240, 240, 245)    -- สีฟอนต์ตัวอักษร: ขาวนวลสบายตา
+        options.Color = Color3.fromRGB(0, 220, 255)         
+        options.TabColor = Color3.fromRGB(34, 49, 63)       
+        options.Background = Color3.fromRGB(19, 20, 24)     
+        options.CardColor = Color3.fromRGB(27, 28, 34)      
+        options.TextColor = Color3.fromRGB(240, 240, 245)    
         options.CornerRadius = 6
         
         local windowObj = originalCreateWindow(self, options)
         
-        -- 🔍 เข้าถึงระดับโครงสร้าง UI เพื่อแทรกกล่องโปรไฟล์ที่แถบเมนูด้านซ้าย
         local CoreGui = game:GetService("CoreGui")
-        local ScreenGui = CoreGui:FindFirstChild("Luna") or CoreGui:FindFirstChild("LunaUI") or CoreGui:FindFirstChild("LunaInterface")
+        local ScreenGui = CoreGui:FindFirstChild("LunaUI") or CoreGui:FindFirstChild("Luna")
         
         if ScreenGui then
             task.spawn(function()
-                task.wait(0.2) -- รอให้โครงสร้าง UI หลักโหลดเสร็จสิ้น
+                task.wait(0.2)
                 
-                -- ค้นหาแถบเมนูด้านซ้าย (Sidebar Container)
                 local Sidebar = nil
-                for _, obj in pairs(ScreenGui:GetDescendants()) do
-                    -- ค้นหาเฟรมสี TabColor หรือเฟรมที่มีการเรียงแถวแนวตั้งด้านซ้าย
-                    if obj:IsA("Frame") and obj.BackgroundColor3 == Color3.fromRGB(34, 49, 63) and obj.Size.X.Scale < 0.4 then
-                        Sidebar = obj
-                        break
-                    end
-                end
-                
-                -- หากหาแถบด้านซ้ายดั้งเดิมไม่เจอ จะใช้วิธีเจาะจงตำแหน่งจากเฟรมหลักแทน
-                if not Sidebar then
-                    local MainFrame = ScreenGui:FindFirstChildWhichIsA("Frame")
-                    if MainFrame then
-                        for _, child in pairs(MainFrame:GetChildren()) do
-                            if child:IsA("Frame") and child.Size.X.Scale < 0.4 then
-                                Sidebar = child
-                                break
-                            end
-                        end
-                    end
+                local MainFrame = ScreenGui:FindFirstChild("MainFrame")
+                if MainFrame then
+                    Sidebar = MainFrame:FindFirstChild("Sidebar")
                 end
 
-                -- 🪪 เริ่มขั้นตอนสร้างโครงสร้าง Profile Card (ถ้าหาตำแหน่งแถบด้านซ้ายพบ)
                 if Sidebar then
                     local LocalPlayer = game:GetService("Players").LocalPlayer
                     
+                    local ProfileFrame = Instance.new("Frame")
+                    ProfileFrame.Name = "ProfileContainer"
+                    ProfileFrame.Size = UDim2.new(1, -20, 0, 50)
+                    ProfileFrame.Position = UDim2.new(0, 10, 1, -60) 
+                    ProfileFrame.BackgroundTransparency = 1 
+                    ProfileFrame.ZIndex = 100
+                    ProfileFrame.Parent = Sidebar
+
+                    local ProfileImage = Instance.new("ImageLabel")
+                    ProfileImage.Name = "ProfileAvatar"
+                    ProfileImage.Size = UDim2.new(0, 40, 0, 40)
+                    ProfileImage.Position = UDim2.new(0, 5, 0.5, -20)
+                    ProfileImage.BackgroundColor3 = Color3.fromRGB(27, 28, 34)
+                    local userId = LocalPlayer.UserId
+                    ProfileImage.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="..userId.."&width=420&height=420&format=png"
+                    ProfileImage.ZIndex = 101
+                    ProfileImage.Parent = ProfileFrame
+
+                    local ImageCorner = Instance.new("UICorner")
+                    ImageCorner.CornerRadius = UDim.new(0, 6)
+                    ImageCorner.Parent = ProfileImage
+
+                    local NameLabel = Instance.new("TextLabel")
+                    NameLabel.Name = "ProfileName"
+                    NameLabel.Size = UDim2.new(1, -55, 0, 20)
+                    NameLabel.Position = UDim2.new(0, 52, 0, 3)
+                    NameLabel.BackgroundTransparency = 1
+                    NameLabel.Text = LocalPlayer.DisplayName 
+                    NameLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+                    NameLabel.Font = Enum.Font.SourceSansBold
+                    NameLabel.TextSize = 14
+                    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    NameLabel.ZIndex = 101
+                    NameLabel.Parent = ProfileFrame
+
+                    local RankLabel = Instance.new("TextLabel")
+                    RankLabel.Name = "ProfileRank"
+                    RankLabel.Size = UDim2.new(1, -55, 0, 18)
+                    RankLabel.Position = UDim2.new(0, 52, 0, 20)
+                    RankLabel.BackgroundTransparency = 1
+                    RankLabel.Text = "NEVER" 
+                    RankLabel.TextColor3 = Color3.fromRGB(140, 145, 155) 
+                    RankLabel.Font = Enum.Font.SourceSans
+                    RankLabel.TextSize = 12
+                    RankLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    RankLabel.ZIndex = 101
+                    RankLabel.Parent = ProfileFrame
+                end
+            end)
+        end
+        
+        return windowObj
+    end
+
+    return CustomLuna
+end)
+
+if success then
+    return result
+else
+    return nil
+end                    
                     -- สร้างกล่องขอบเขตโปรไฟล์ (Profile Container Frame)
                     local ProfileFrame = Instance.new("Frame")
                     ProfileFrame.Name = "ProfileContainer"
