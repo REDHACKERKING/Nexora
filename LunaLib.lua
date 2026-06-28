@@ -1,66 +1,144 @@
--- [[ Luna Interface Suite - ตัวเต็มระบบปุ่มลอยเปิด-ปิด GUI ]]
-local Luna = {}
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
-
-Luna.Properties = {
-    Color = Color3.fromRGB(44, 122, 232)
-}
-
-function Luna:CreateWindow(options)
-    options = options or {}
-    local windowTitle = options.Name or "Luna Interface"
+-- [[ Luna Interface Suite - ฉบับปรับปรุงดีไซน์ + เพิ่ม Profile Card ด้านซ้ายล่าง ]]
+local success, result = pcall(function()
+    -- 🔗 ดึง Core หลักของ Luna มาประมวลผลภายใน
+    local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/source.lua"))()
     
-    if CoreGui:FindFirstChild("LunaUI") then
-        CoreGui:FindFirstChild("LunaUI"):Destroy()
+    local CustomLuna = {}
+    for k, v in pairs(Luna) do
+        CustomLuna[k] = v
     end
 
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "LunaUI"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
-    if syn and syn.protect_gui then syn.protect_gui(ScreenGui) ScreenGui.Parent = CoreGui
-    elseif gethui then ScreenGui.Parent = gethui()
-    else ScreenGui.Parent = CoreGui end
+    -- 🎨 ดักจับฟังก์ชันสร้างหน้าต่างเพื่อเขียนทับดีไซน์และแทรกการแสดงผลโปรไฟล์
+    local originalCreateWindow = Luna.CreateWindow
+    CustomLuna.CreateWindow = function(self, options)
+        options = options or {}
+        options.Name = options.Name or "COMPKILLER"
+        options.Subtitle = options.Subtitle or "NEVER"
+        options.Icon = options.Icon or "rbxassetid://10815411700"
+        
+        -- บังคับโค้ดสีจากภาพตัวอย่างสไตล์ Dark Cyan & Carbon เทาเข้ม
+        options.Color = Color3.fromRGB(0, 220, 255)         -- สีหลัก (Accent): ฟ้าไซอันนีออนสว่าง
+        options.TabColor = Color3.fromRGB(34, 49, 63)       -- แถบเมนูด้านข้าง: น้ำเงินอมเทาดำด้าน
+        options.Background = Color3.fromRGB(19, 20, 24)     -- พื้นหลังหลักของ UI: เทาดำไซเบอร์
+        options.CardColor = Color3.fromRGB(27, 28, 34)      -- พื้นหลังส่วนของ Section/ปุ่มกด: เทาเข้มโปร่งแสง
+        options.TextColor = Color3.fromRGB(240, 240, 245)    -- สีฟอนต์ตัวอักษร: ขาวนวลสบายตา
+        options.CornerRadius = 6
+        
+        local windowObj = originalCreateWindow(self, options)
+        
+        -- 🔍 เข้าถึงระดับโครงสร้าง UI เพื่อแทรกกล่องโปรไฟล์ที่แถบเมนูด้านซ้าย
+        local CoreGui = game:GetService("CoreGui")
+        local ScreenGui = CoreGui:FindFirstChild("Luna") or CoreGui:FindFirstChild("LunaUI") or CoreGui:FindFirstChild("LunaInterface")
+        
+        if ScreenGui then
+            task.spawn(function()
+                task.wait(0.2) -- รอให้โครงสร้าง UI หลักโหลดเสร็จสิ้น
+                
+                -- ค้นหาแถบเมนูด้านซ้าย (Sidebar Container)
+                local Sidebar = nil
+                for _, obj in pairs(ScreenGui:GetDescendants()) do
+                    -- ค้นหาเฟรมสี TabColor หรือเฟรมที่มีการเรียงแถวแนวตั้งด้านซ้าย
+                    if obj:IsA("Frame") and obj.BackgroundColor3 == Color3.fromRGB(34, 49, 63) and obj.Size.X.Scale < 0.4 then
+                        Sidebar = obj
+                        break
+                    end
+                end
+                
+                -- หากหาแถบด้านซ้ายดั้งเดิมไม่เจอ จะใช้วิธีเจาะจงตำแหน่งจากเฟรมหลักแทน
+                if not Sidebar then
+                    local MainFrame = ScreenGui:FindFirstChildWhichIsA("Frame")
+                    if MainFrame then
+                        for _, child in pairs(MainFrame:GetChildren()) do
+                            if child:IsA("Frame") and child.Size.X.Scale < 0.4 then
+                                Sidebar = child
+                                break
+                            end
+                        end
+                    end
+                end
 
-    -- Main Window Frame
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 550, 0, 350)
-    MainFrame.Position = UDim2.new(0.5, -275, 0.5, -175)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Active = true
-    MainFrame.Draggable = true -- สามารถลากย้ายหน้าจอหลักได้
-    MainFrame.Parent = ScreenGui
+                -- 🪪 เริ่มขั้นตอนสร้างโครงสร้าง Profile Card (ถ้าหาตำแหน่งแถบด้านซ้ายพบ)
+                if Sidebar then
+                    local LocalPlayer = game:GetService("Players").LocalPlayer
+                    
+                    -- สร้างกล่องขอบเขตโปรไฟล์ (Profile Container Frame)
+                    local ProfileFrame = Instance.new("Frame")
+                    ProfileFrame.Name = "ProfileContainer"
+                    ProfileFrame.Size = UDim2.new(0, 160, 0, 50)
+                    ProfileFrame.Position = UDim2.new(0, 12, 1, -62) -- วางไว้มุมล่างสุดของแถบซ้าย
+                    ProfileFrame.BackgroundTransparency = 1 -- โปร่งแสงตามรูปภาพต้นฉบับ
+                    ProfileFrame.ZIndex = 100
+                    ProfileFrame.Parent = Sidebar
 
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 8)
-    UICorner.Parent = MainFrame
+                    -- 👤 1. ส่วนรูปภาพโปรไฟล์ (ดึงรูป Avatar ปัจจุบันของผู้เล่นจากระบบ Roblox)
+                    local ProfileImage = Instance.new("ImageLabel")
+                    ProfileImage.Name = "ProfileAvatar"
+                    ProfileImage.Size = UDim2.new(0, 42, 0, 42)
+                    ProfileImage.Position = UDim2.new(0, 0, 0.5, -21)
+                    ProfileImage.BackgroundColor3 = Color3.fromRGB(27, 28, 34)
+                    -- ฟังก์ชันดึงรูปภาพสไตล์ Headshot ของผู้เล่นแบบ HD
+                    local userId = LocalPlayer.UserId
+                    ProfileImage.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="..userId.."&width=420&height=420&format=png"
+                    ProfileImage.ZIndex = 101
+                    ProfileImage.Parent = ProfileFrame
 
-    -- =================================================================
-    -- 🔘 SYSTEM: FLOATING TOGGLE BUTTON (ระบบปุ่มลอย เปิด-ปิด GUI)
-    -- =================================================================
-    local ToggleButton = Instance.new("TextButton")
-    ToggleButton.Name = "LunaToggleButton"
-    ToggleButton.Size = UDim2.new(0, 50, 0, 50)
-    ToggleButton.Position = UDim2.new(0, 15, 0, 15) -- ตำแหน่งเริ่มต้น (ซ้ายบน)
-    ToggleButton.BackgroundColor3 = Luna.Properties.Color
-    ToggleButton.Text = "N" -- ตัวอักษรบนปุ่มย่อมาจาก Nexora (เปลี่ยนเป็นคำอื่นได้)
-    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleButton.Font = Enum.Font.SourceSansBold
-    ToggleButton.TextSize = 22
-    ToggleButton.Active = true
-    ToggleButton.Draggable = true -- ปุ่มลอยลากย้ายไปวางตำแหน่งไหนบนจอก็ได้
-    ToggleButton.Parent = ScreenGui
+                    local ImageCorner = Instance.new("UICorner")
+                    ImageCorner.CornerRadius = UDim.new(0, 6) -- ทำมุมโค้งมนที่รูปภาพ
+                    ImageCorner.Parent = ProfileImage
 
-    local ButtonCorner = Instance.new("UICorner")
-    ButtonCorner.CornerRadius = UDim.new(1, 0) -- ทำปุ่มให้เป็นทรงกลม
-    ButtonCorner.Parent = ToggleButton
+                    -- 📝 2. ส่วนแสดงชื่อผู้เล่น (Display Name)
+                    local NameLabel = Instance.new("TextLabel")
+                    NameLabel.Name = "ProfileName"
+                    NameLabel.Size = UDim2.new(0, 110, 0, 20)
+                    NameLabel.Position = UDim2.new(0, 50, 0, 4)
+                    NameLabel.BackgroundTransparency = 1
+                    NameLabel.Text = LocalPlayer.DisplayName -- แสดงชื่อเล่นที่ตั้งไว้
+                    NameLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+                    NameLabel.Font = Enum.Font.SourceSansBold
+                    NameLabel.TextSize = 15
+                    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    NameLabel.ZIndex = 101
+                    NameLabel.Parent = ProfileFrame
 
-    -- ฟังก์ชัน เปิด-ปิด หน้าจอหลักเมื่อกดปุ่มลอย
+                    -- 🎖️ 3. ส่วนแสดงสถานะ / ยศ (ตามรูปภาพคือคำว่า NEVER)
+                    local RankLabel = Instance.new("TextLabel")
+                    RankLabel.Name = "ProfileRank"
+                    RankLabel.Size = UDim2.new(0, 110, 0, 18)
+                    RankLabel.Position = UDim2.new(0, 50, 0, 22)
+                    RankLabel.BackgroundTransparency = 1
+                    RankLabel.Text = "NEVER" -- ยศเท่ๆ ถอดแบบมาจากตัวอย่างในรูปภาพ
+                    RankLabel.TextColor3 = Color3.fromRGB(140, 145, 155) -- สีเทาจางลงมาตามรูปแบบต้นฉบับ
+                    RankLabel.Font = Enum.Font.SourceSans
+                    RankLabel.TextSize = 13
+                    RankLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    RankLabel.ZIndex = 101
+                    RankLabel.Parent = ProfileFrame
+                end
+
+                -- บังคับคุมโทนสีวัตถุภายในอื่นๆ (ปุ่มและสไลเดอร์) ให้กลายเป็นสีฟ้านีออนไซอัน
+                for _, child in pairs(ScreenGui:GetDescendants()) do
+                    if child:IsA("TextButton") and child.Name == "Button" then
+                        child.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
+                        child.TextColor3 = Color3.fromRGB(19, 20, 24)
+                    end
+                    if child:IsA("Frame") and (string.find(string.lower(child.Name), "slider") or string.find(string.lower(child.Name), "fill")) then
+                        child.BackgroundColor3 = Color3.fromRGB(0, 220, 255)
+                    end
+                end
+            end)
+        end
+        
+        return windowObj
+    end
+
+    return CustomLuna
+end)
+
+if success then
+    return result
+else
+    warn("Nexora Profile Error: ไม่สามารถติดตั้งระบบโปรไฟล์ได้: ", result)
+end    -- ฟังก์ชัน เปิด-ปิด หน้าจอหลักเมื่อกดปุ่มลอย
     local uiVisible = true
     ToggleButton.MouseButton1Click:Connect(function()
         uiVisible = not uiVisible
