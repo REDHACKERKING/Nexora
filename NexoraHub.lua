@@ -69,11 +69,27 @@ FarmTab:CreateToggle({
         end)
     end
 })
-
+local  local AutoClaimRewards = false
+FarmTab:CreateToggle({
+    Name = "Auto Claim Playtime Rewards",
+    CurrentValue = false,
+    Callback = function(Value)
+        AutoClaimRewards = Value
+        task.spawn(function()
+            while AutoClaimRewards do
+                for i = 1, 10 do
+                    if not AutoClaimRewards then break end
+                    SafeFireServer("PlaytimeRewardUpdateEvent", tostring(i))
+                end
+                task.wait(5)
+            end
+        end)
+    end
+})
 -- =================================================================
--- 🥚 TAB 3: EGGS & SPINS
+-- 🥚 TAB 3: SPINS
 -- =================================================================
-local EggTab = Window:CreateTab({ Name = "Eggs" })
+local SpinWhee = Window:CreateTab({ Name = "SpinWhee" })
 local AutoSpinWheel = false
 EggTab:CreateToggle({
     Name = "Auto Spin Wheel",
@@ -108,7 +124,7 @@ PlayerTab:CreateSlider({
 -- =================================================================
 -- ⚙️ TAB 5: SYSTEM
 -- =================================================================
-local SystemTab = Window:CreateTab({ Name = "System" })
+local SystemTab = Window:CreateTab({ Name = "System" })aaà
 SystemTab:CreateButton({
     Name = "FPS Boost",
     Callback = function()
@@ -128,5 +144,27 @@ SystemTab:CreateButton({
                 game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, s.id)
             end
         end
+    end
+})
+
+local AutoSpinWheel = false
+SystemTab:CreateToggle({
+    Name = "Auto Hide Egg & Spin GUI",
+    CurrentValue = false,
+    Callback = function(Value)
+        HideSpinAndEggGUI = Value
+        task.spawn(function()
+            while HideSpinAndEggGUI do
+                local playerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
+                if playerGui then
+                    for _, gui in pairs(playerGui:GetChildren()) do
+                        if gui:IsA("ScreenGui") and string.find(string.lower(gui.Name), "egg") or string.find(string.lower(gui.Name), "spin") then
+                            if gui.Name ~= "LunaUI" then gui.Enabled = false end
+                        end
+                    end
+                end
+                task.wait(0.05)
+            end
+        end)
     end
 })
