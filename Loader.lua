@@ -1,10 +1,11 @@
 -- =================================================================
--- COMPKILLER LOADER | NEXORA EDITION
+-- COMPKILLER LOADER | NEXORA EDITION (FINAL STABLE)
 -- =================================================================
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
 
 -- 1. ฟังก์ชันสร้างหน้าจอ Loading
 local function ShowLoadingScreen()
-    local CoreGui = game:GetService("CoreGui")
     local LoadGui = Instance.new("ScreenGui", CoreGui)
     LoadGui.Name = "NexoraLoading"
     LoadGui.IgnoreGuiInset = true
@@ -23,42 +24,42 @@ local function ShowLoadingScreen()
     Text.Font = Enum.Font.GothamBold
     Text.TextSize = 30
     Text.TextTransparency = 1
+    Text.Parent = Frame
 
-    -- Animation Fade In
-    task.spawn(function()
-        for i = 1, 0, -0.05 do
-            Text.TextTransparency = i
-            task.wait(0.03)
-        end
-    end)
+    -- Fade In
+    TweenService:Create(Text, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
     
-    return LoadGui, Frame
+    return LoadGui, Frame, Text
 end
 
 -- 2. เริ่มทำงาน
-local LoadingUI, MainFrame = ShowLoadingScreen()
+local LoadingUI, MainFrame, TextLabel = ShowLoadingScreen()
 
--- 3. โหลด Library และ ฟังก์ชันแยก (แทนที่ URL ของคุณ)
-task.wait(2.5) -- รอช่วงโหลด 2.5 วินาทีให้ดูพรีเมียม
-
-local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/source.lua"))()
--- สมมติว่าไฟล์ฟังก์ชันคุณอยู่ที่ Pastebin นี้
-local Features = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/refs/heads/main/NexoraHub.lua"))()
-
--- 4. Fade Out หน้าจอ Loading
+-- 3. โหลด Library และ ฟังก์ชัน (ใส่อันนี้ไว้ใน task.spawn เพื่อไม่ให้ค้างหน้าจอก่อนโหลดเสร็จ)
 task.spawn(function()
-    for i = 0, 1, 0.05 do
-        MainFrame.BackgroundTransparency = i
-        LoadingUI.Enabled = false -- ปิดการมองเห็น
-        task.wait(0.02)
-    end
-    LoadingUI:Destroy()
+    local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/source.lua"))()
+    -- เปลี่ยนลิงก์ด้านล่างเป็น Raw Pastebin ของคุณ
+    local Features = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/refs/heads/main/NexoraHub.lua"))()
+
+    task.wait(1.5) -- รอให้ดูพรีเมียมเล็กน้อย
+
+    -- 4. Fade Out หน้าจอ Loading แบบสมบูรณ์
+    local tweenInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    
+    local fadeFrame = TweenService:Create(MainFrame, tweenInfo, {BackgroundTransparency = 1})
+    local fadeText = TweenService:Create(TextLabel, tweenInfo, {TextTransparency = 1})
+    
+    fadeFrame:Play()
+    fadeText:Play()
+    
+    fadeFrame.Completed:Connect(function()
+        LoadingUI:Destroy()
+    end)
+
+    -- 5. สร้าง UI หลักและเรียกฟังก์ชัน
+    local Window = Luna:CreateWindow({ Name = "COMPKILLER | NEXORA" })
+    Features.LoadShop(Window)
+    Features.LoadRewards(Window)
+    
+    print("Nexora: โหลดเสร็จสมบูรณ์!")
 end)
-
--- 5. สร้าง UI หลักและโหลดฟังก์ชันจากไฟล์ Features.lua
-local Window = Luna:CreateWindow({ Name = "COMPKILLER | NEXORA" })
-
-Features.LoadShop(Window)
-Features.LoadRewards(Window)
-
-print("Nexora: โหลดเสร็จสมบูรณ์!")
