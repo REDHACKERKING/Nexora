@@ -1,12 +1,13 @@
 -- =================================================================
--- Nexora Hub - Final Full Version (Safe Farm & Buy)
+-- Nexora Hub - Final Full Version (Added Auto Claim)
 -- =================================================================
 
 -- ระบบจดจำสถานะ (Persistence)
 getgenv().NexoraData = getgenv().NexoraData or {
     AutoPickup = false,
     AutoBuy = false,
-    AutoSpin = false
+    AutoSpin = false,
+    AutoClaim = false
 }
 
 -- โหลด Library
@@ -20,38 +21,39 @@ end
 
 local Window = Luna:CreateWindow()
 
--- ฟังก์ชันส่ง Event แบบปลอดภัย (มีหน่วงเวลาสุ่มเพื่อความเนียน)
+-- ฟังก์ชันส่ง Event แบบปลอดภัย
 local function SafeFireServer(eventName, ...)
     task.wait(math.random(0.1, 0.3)) 
     local event = game:GetService("ReplicatedStorage"):WaitForChild("Events"):FindFirstChild(eventName)
     if event then
         event:FireServer(...)
-    else
-        warn("Nexora Warning: ไม่พบ Event ชื่อ " .. eventName)
     end
 end
 
 -- =================================================================
--- TAB 1: FARM
+-- TAB 1: FARM (ล็อกเป้าหมายเฉพาะ Duplicator)
 -- =================================================================
 local FarmTab = Window:CreateTab({ Name = "Farm" })
 
 FarmTab:CreateToggle({
-    Name = "Auto Pickup Cubes (Every 1 Min)",
+    Name = "Auto Pickup Duplicator Only",
     CurrentValue = getgenv().NexoraData.AutoPickup,
     Callback = function(Value)
         getgenv().NexoraData.AutoPickup = Value
         if Value then
             task.spawn(function()
                 while getgenv().NexoraData.AutoPickup do
-                    for _, obj in pairs(workspace:GetDescendants()) do
-                        if not getgenv().NexoraData.AutoPickup then break end
-                        if obj:IsA("BasePart") and string.find(obj.Name, "enchantment extractor") then
-                            SafeFireServer("PickupCrateEvent", obj.Name)
-                            task.wait(math.random(0.3, 0.5))
+                    local machine = workspace:FindFirstChild("Duplicator", true)
+                    if machine then
+                        for _, obj in pairs(machine:GetDescendants()) do
+                            if not getgenv().NexoraData.AutoPickup then break end
+                            if obj:IsA("BasePart") and string.find(obj.Name, "enchantment extractor") then
+                                SafeFireServer("PickupCrateEvent", obj.Name)
+                                task.wait(math.random(0.3, 0.5))
+                            end
                         end
                     end
-                    task.wait(60) -- รอบละ 1 นาที
+                    task.wait(60) 
                 end
             end)
         end
@@ -62,7 +64,6 @@ FarmTab:CreateToggle({
 -- TAB 2: SHOP
 -- =================================================================
 local ShopTab = Window:CreateTab({ Name = "Shop" })
-
 ShopTab:CreateToggle({
     Name = "Auto Buy Frostbound (Every 15 Min)",
     CurrentValue = getgenv().NexoraData.AutoBuy,
@@ -72,7 +73,7 @@ ShopTab:CreateToggle({
             task.spawn(function()
                 while getgenv().NexoraData.AutoBuy do
                     SafeFireServer("TotemShopPurchaseEvent", "Frostbound")
-                    task.wait(900) -- รอบละ 15 นาที
+                    task.wait(900)
                 end
             end)
         end
@@ -80,7 +81,28 @@ ShopTab:CreateToggle({
 })
 
 -- =================================================================
--- TAB 3: SPINS
+-- TAB 3: REWARDS (New)
+-- =================================================================
+local RewardTab = Window:CreateTab({ Name = "Rewards" })
+RewardTab:CreateToggle({
+    Name = "Auto Claim Rewards",
+    CurrentValue = getgenv().NexoraData.AutoClaim,
+    Callback = function(Value)
+        getgenv().NexoraData.AutoClaim = Value
+        if Value then
+            task.spawn(function()
+                while getgenv().NexoraData.AutoClaim do
+                    -- หมายเหตุ: หากไม่ได้รับรางวัล ให้ลองเช็คชื่อ Remote ในเกมอีกครั้ง
+                    SafeFireServer("PlaytimeRewardUpdateEvent", "Claim")
+                    task.wait(5) 
+                end
+            end)
+        end
+    end
+})
+
+-- =================================================================
+-- TAB 4: MISC & SYSTEM
 -- =================================================================
 local SpinTab = Window:CreateTab({ Name = "Spins" })
 SpinTab:CreateToggle({
@@ -99,25 +121,7 @@ SpinTab:CreateToggle({
     end
 })
 
--- =================================================================
--- TAB 4: PLAYER
--- =================================================================
-local PlayerTab = Window:CreateTab({ Name = "Player" })
-PlayerTab:CreateSlider({
-    Name = "WalkSpeed",
-    Range = {16, 100},
-    CurrentValue = 16,
-    Callback = function(Value)
-        local hum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
-        if hum then hum.WalkSpeed = Value end
-    end
-})
-
--- =================================================================
--- TAB 5: SYSTEM
--- =================================================================
 local SystemTab = Window:CreateTab({ Name = "System" })
-
 SystemTab:CreateButton({
     Name = "Server Hop (Safe)",
     Callback = function()
@@ -131,26 +135,5 @@ SystemTab:CreateButton({
                 end
             end
         end
-    end
-})
-
-SystemTab:CreateToggle({
-    Name = "Auto Hide GUI",
-    CurrentValue = false,
-    Callback = function(Value)
-        getgenv().HideGUI = Value
-        task.spawn(function()
-            while getgenv().HideGUI do
-                local playerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
-                if playerGui then
-                    for _, gui in pairs(playerGui:GetChildren()) do
-                        if gui:IsA("ScreenGui") and (string.find(string.lower(gui.Name), "egg") or string.find(string.lower(gui.Name), "spin")) then
-                            if gui.Name ~= "LunaUI" then gui.Enabled = false end
-                        end
-                    end
-                end
-                task.wait(2)
-            end
-        end)
     end
 })
