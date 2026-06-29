@@ -127,18 +127,36 @@ SystemTab:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         getgenv().HideGUI = Value
-        task.spawn(function()
-            while getgenv().HideGUI do
-                local playerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
-                if playerGui then
-                    for _, gui in pairs(playerGui:GetChildren()) do
-                        if gui:IsA("ScreenGui") and (string.find(string.lower(gui.Name), "egg") or string.find(string.lower(gui.Name), "spin")) then
-                            if gui.Name ~= "LunaUI" then gui.Enabled = false end
-                        end
+        
+        -- เก็บ Connection ไว้เพื่อจะได้ปิดได้ตอนกดปิด Toggle
+        if Value then
+            local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+            
+            -- สร้าง Connection ดักฟังการเพิ่ม GUI ใหม่
+            getgenv().HideConnection = playerGui.ChildAdded:Connect(function(gui)
+                if getgenv().HideGUI and gui:IsA("ScreenGui") and gui.Name ~= "LunaUI" then
+                    local lowerName = string.lower(gui.Name)
+                    if string.find(lowerName, "egg") or string.find(lowerName, "spin") then
+                        gui.Enabled = false
                     end
                 end
-                task.wait(2)
+            end)
+            
+            -- จัดการกับ GUI ที่มีอยู่แล้วก่อนเปิด Toggle
+            for _, gui in pairs(playerGui:GetChildren()) do
+                if gui:IsA("ScreenGui") and gui.Name ~= "LunaUI" then
+                    local lowerName = string.lower(gui.Name)
+                    if string.find(lowerName, "egg") or string.find(lowerName, "spin") then
+                        gui.Enabled = false
+                    end
+                end
             end
-        end)
+        else
+            -- ปิดการทำงานของ Connection เมื่อกดปิด Toggle
+            if getgenv().HideConnection then
+                getgenv().HideConnection:Disconnect()
+                getgenv().HideConnection = nil
+            end
+        end
     end
 })
