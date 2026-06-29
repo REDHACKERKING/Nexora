@@ -1,5 +1,5 @@
 -- =================================================================
--- Nexora Hub - Final Full Version (Added Auto Claim)
+-- Nexora Hub - Dynamic ID Hunter (Full Script)
 -- =================================================================
 
 -- ระบบจดจำสถานะ (Persistence)
@@ -9,6 +9,9 @@ getgenv().NexoraData = getgenv().NexoraData or {
     AutoSpin = false,
     AutoClaim = false
 }
+
+-- เริ่มต้นที่เลข 1619
+getgenv().CurrentCubeID = 1619
 
 -- โหลด Library
 local url = "https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/LunaLib.lua"
@@ -21,9 +24,8 @@ end
 
 local Window = Luna:CreateWindow()
 
--- ฟังก์ชันส่ง Event แบบปลอดภัย
+-- ฟังก์ชันส่ง Event
 local function SafeFireServer(eventName, ...)
-    task.wait(math.random(0.1, 0.3)) 
     local event = game:GetService("ReplicatedStorage"):WaitForChild("Events"):FindFirstChild(eventName)
     if event then
         event:FireServer(...)
@@ -31,29 +33,35 @@ local function SafeFireServer(eventName, ...)
 end
 
 -- =================================================================
--- TAB 1: FARM (ล็อกเป้าหมายเฉพาะ Duplicator)
+-- TAB 1: FARM (Dynamic ID Hunter)
 -- =================================================================
 local FarmTab = Window:CreateTab({ Name = "Farm" })
 
 FarmTab:CreateToggle({
-    Name = "Auto Pickup Duplicator Only",
+    Name = "Auto Hunter (Auto Increment ID)",
     CurrentValue = getgenv().NexoraData.AutoPickup,
     Callback = function(Value)
         getgenv().NexoraData.AutoPickup = Value
         if Value then
             task.spawn(function()
                 while getgenv().NexoraData.AutoPickup do
-                    local machine = workspace:FindFirstChild("Duplicator", true)
-                    if machine then
-                        for _, obj in pairs(machine:GetDescendants()) do
-                            if not getgenv().NexoraData.AutoPickup then break end
-                            if obj:IsA("BasePart") and string.find(obj.Name, "enchantment extractor") then
-                                SafeFireServer("PickupCrateEvent", obj.Name)
-                                task.wait(math.random(0.3, 0.5))
-                            end
-                        end
+                    -- สร้างชื่อเป้าหมายตาม ID ปัจจุบัน
+                    local targetName = "Meshes/ enchantment extractor_Cube." .. tostring(getgenv().CurrentCubeID)
+                    local targetCube = workspace:FindFirstChild(targetName, true)
+                    
+                    if targetCube then
+                        -- ส่งค่า ID ปัจจุบันไปที่ Event
+                        local args = { tostring(getgenv().CurrentCubeID) }
+                        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("PickupCrateEvent"):FireServer(unpack(args))
+                        
+                        print("Nexora: พบกล่องเลข " .. getgenv().CurrentCubeID .. " ทำการเก็บเรียบร้อย")
+                        getgenv().CurrentCubeID = getgenv().CurrentCubeID + 1
+                    else
+                        -- ไม่เจอเลขนี้ ขยับเลขถัดไป
+                        getgenv().CurrentCubeID = getgenv().CurrentCubeID + 1
                     end
-                    task.wait(60) 
+                    
+                    task.wait(0.5) -- หน่วงเวลาสแกน 0.5 วินาที
                 end
             end)
         end
@@ -61,11 +69,11 @@ FarmTab:CreateToggle({
 })
 
 -- =================================================================
--- TAB 2: SHOP
+-- TAB 2: SHOP (Auto Buy - 15 Min)
 -- =================================================================
 local ShopTab = Window:CreateTab({ Name = "Shop" })
 ShopTab:CreateToggle({
-    Name = "Auto Buy Frostbound (Every 15 Min)",
+    Name = "Auto Buy Frostbound (15 Min)",
     CurrentValue = getgenv().NexoraData.AutoBuy,
     Callback = function(Value)
         getgenv().NexoraData.AutoBuy = Value
@@ -81,7 +89,7 @@ ShopTab:CreateToggle({
 })
 
 -- =================================================================
--- TAB 3: REWARDS (New)
+-- TAB 3: REWARDS
 -- =================================================================
 local RewardTab = Window:CreateTab({ Name = "Rewards" })
 RewardTab:CreateToggle({
@@ -92,7 +100,6 @@ RewardTab:CreateToggle({
         if Value then
             task.spawn(function()
                 while getgenv().NexoraData.AutoClaim do
-                    -- หมายเหตุ: หากไม่ได้รับรางวัล ให้ลองเช็คชื่อ Remote ในเกมอีกครั้ง
                     SafeFireServer("PlaytimeRewardUpdateEvent", "Claim")
                     task.wait(5) 
                 end
@@ -102,25 +109,8 @@ RewardTab:CreateToggle({
 })
 
 -- =================================================================
--- TAB 4: MISC & SYSTEM
+-- TAB 4: SYSTEM
 -- =================================================================
-local SpinTab = Window:CreateTab({ Name = "Spins" })
-SpinTab:CreateToggle({
-    Name = "Auto Spin Wheel",
-    CurrentValue = getgenv().NexoraData.AutoSpin,
-    Callback = function(Value)
-        getgenv().NexoraData.AutoSpin = Value
-        task.spawn(function()
-            while getgenv().NexoraData.AutoSpin do
-                SafeFireServer("AdminAbuseSpinWheelEvent", "Spin")
-                task.wait(0.1)
-                SafeFireServer("AdminAbuseSpinWheelEvent", "SpinComplete")
-                task.wait(5)
-            end
-        end)
-    end
-})
-
 local SystemTab = Window:CreateTab({ Name = "System" })
 SystemTab:CreateButton({
     Name = "Server Hop (Safe)",
