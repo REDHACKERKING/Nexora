@@ -49,19 +49,35 @@ ShopTab:CreateToggle({
 })
 
 -- =================================================================
--- TAB 2: REWARDS
 -- =================================================================
-local RewardTab = Window:CreateTab({ Name = "Rewards" })
+-- TAB 2: REWARDS (Updated to Auto Loop 1-10)
+-- =================================================================
+local RewardTab = Window:CreateTab({ Name = "🎁 Rewards" })
+RewardTab:CreateSection("AUTO CLAIM 1-10")
+
 RewardTab:CreateToggle({
-    Name = "Auto Claim Rewards",
+    Name = "Auto Claim Rewards (1-10)",
     CurrentValue = getgenv().NexoraData.AutoClaim,
     Callback = function(Value)
         getgenv().NexoraData.AutoClaim = Value
         if Value then
             task.spawn(function()
                 while getgenv().NexoraData.AutoClaim do
-                    SafeFireServer("PlaytimeRewardUpdateEvent", "Claim")
-                    task.wait(5) 
+                    -- วนลูปเลข 1 ถึง 10
+                    for i = 1, 10 do
+                        if not getgenv().NexoraData.AutoClaim then break end
+                        
+                        local args = { tostring(i) }
+                        local event = game:GetService("ReplicatedStorage"):WaitForChild("Events"):FindFirstChild("PlaytimeRewardUpdateEvent")
+                        
+                        if event then
+                            event:FireServer(unpack(args))
+                            print("Nexora: Claimed Reward ID: " .. i)
+                        end
+                        
+                        task.wait(1) -- เว้นช่วง 1 วินาทีต่อการกด 1 ครั้ง เพื่อไม่ให้ Spam เกินไป
+                    end
+                    task.wait(5) -- จบ 1 รอบ 1-10 แล้วรอ 5 วินาทีก่อนเริ่มรอบใหม่
                 end
             end)
         end
