@@ -1,17 +1,13 @@
 -- =================================================================
--- Nexora Hub - Dynamic ID Hunter (Full Script)
+-- Nexora Hub - Final Full Version (No Farm)
 -- =================================================================
 
 -- ระบบจดจำสถานะ (Persistence)
 getgenv().NexoraData = getgenv().NexoraData or {
-    AutoPickup = false,
     AutoBuy = false,
     AutoSpin = false,
     AutoClaim = false
 }
-
--- เริ่มต้นที่เลข 1619
-getgenv().CurrentCubeID = 1619
 
 -- โหลด Library
 local url = "https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/LunaLib.lua"
@@ -33,43 +29,7 @@ local function SafeFireServer(eventName, ...)
 end
 
 -- =================================================================
--- TAB 1: FARM (Dynamic ID Hunter)
--- =================================================================
-local FarmTab = Window:CreateTab({ Name = "Farm" })
-
-FarmTab:CreateToggle({
-    Name = "Auto Hunter (Auto Increment ID)",
-    CurrentValue = getgenv().NexoraData.AutoPickup,
-    Callback = function(Value)
-        getgenv().NexoraData.AutoPickup = Value
-        if Value then
-            task.spawn(function()
-                while getgenv().NexoraData.AutoPickup do
-                    -- สร้างชื่อเป้าหมายตาม ID ปัจจุบัน
-                    local targetName = "Meshes/ enchantment extractor_Cube." .. tostring(getgenv().CurrentCubeID)
-                    local targetCube = workspace:FindFirstChild(targetName, true)
-                    
-                    if targetCube then
-                        -- ส่งค่า ID ปัจจุบันไปที่ Event
-                        local args = { tostring(getgenv().CurrentCubeID) }
-                        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("PickupCrateEvent"):FireServer(unpack(args))
-                        
-                        print("Nexora: พบกล่องเลข " .. getgenv().CurrentCubeID .. " ทำการเก็บเรียบร้อย")
-                        getgenv().CurrentCubeID = getgenv().CurrentCubeID + 1
-                    else
-                        -- ไม่เจอเลขนี้ ขยับเลขถัดไป
-                        getgenv().CurrentCubeID = getgenv().CurrentCubeID + 1
-                    end
-                    
-                    task.wait(0.5) -- หน่วงเวลาสแกน 0.5 วินาที
-                end
-            end)
-        end
-    end
-})
-
--- =================================================================
--- TAB 2: SHOP (Auto Buy - 15 Min)
+-- TAB 1: SHOP
 -- =================================================================
 local ShopTab = Window:CreateTab({ Name = "Shop" })
 ShopTab:CreateToggle({
@@ -89,7 +49,7 @@ ShopTab:CreateToggle({
 })
 
 -- =================================================================
--- TAB 3: REWARDS
+-- TAB 2: REWARDS
 -- =================================================================
 local RewardTab = Window:CreateTab({ Name = "Rewards" })
 RewardTab:CreateToggle({
@@ -109,9 +69,27 @@ RewardTab:CreateToggle({
 })
 
 -- =================================================================
--- TAB 4: SYSTEM
+-- TAB 3: SPINS & SYSTEM
 -- =================================================================
+local SpinTab = Window:CreateTab({ Name = "Spins" })
+SpinTab:CreateToggle({
+    Name = "Auto Spin Wheel",
+    CurrentValue = getgenv().NexoraData.AutoSpin,
+    Callback = function(Value)
+        getgenv().NexoraData.AutoSpin = Value
+        task.spawn(function()
+            while getgenv().NexoraData.AutoSpin do
+                SafeFireServer("AdminAbuseSpinWheelEvent", "Spin")
+                task.wait(0.1)
+                SafeFireServer("AdminAbuseSpinWheelEvent", "SpinComplete")
+                task.wait(5)
+            end
+        end)
+    end
+})
+
 local SystemTab = Window:CreateTab({ Name = "System" })
+
 SystemTab:CreateButton({
     Name = "Server Hop (Safe)",
     Callback = function()
@@ -125,5 +103,26 @@ SystemTab:CreateButton({
                 end
             end
         end
+    end
+})
+
+SystemTab:CreateToggle({
+    Name = "Auto Hide GUI",
+    CurrentValue = false,
+    Callback = function(Value)
+        getgenv().HideGUI = Value
+        task.spawn(function()
+            while getgenv().HideGUI do
+                local playerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
+                if playerGui then
+                    for _, gui in pairs(playerGui:GetChildren()) do
+                        if gui:IsA("ScreenGui") and (string.find(string.lower(gui.Name), "egg") or string.find(string.lower(gui.Name), "spin")) then
+                            if gui.Name ~= "LunaUI" then gui.Enabled = false end
+                        end
+                    end
+                end
+                task.wait(2)
+            end
+        end)
     end
 })
