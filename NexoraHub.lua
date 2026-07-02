@@ -1,85 +1,170 @@
 -- =================================================================
--- NEXORA HUB - INTEGRATED FINAL VERSION
+-- Nexora Hub - Final Full Version (No Farm)
 -- =================================================================
-local CoreGui = game:GetService("CoreGui")
 
--- 1. โหลด Library
-local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/source.lua"))()
+-- ระบบจดจำสถานะ (Persistence)
+getgenv().NexoraData = getgenv().NexoraData or {
+    AutoBuy = false,
+    AutoSpin = false,
+    AutoClaim = false
+}
 
--- 2. สร้าง Window
-local Window = Luna:CreateWindow({
-    Name = "COMPKILLER",
-    Subtitle = "NEVER",
-    Color = Color3.fromRGB(0, 220, 255),
-    Background = Color3.fromRGB(15, 16, 20),
-    CornerRadius = 8
-})
+-- โหลด Library
+local url = "https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/LunaLib.lua"
+local success, Luna = pcall(function() return loadstring(game:HttpGet(url .. "?nocache=" .. tostring(tick())))() end)
 
--- ใส่ Profile Section
-task.spawn(function()
-    task.wait(0.3)
-    local Sidebar = CoreGui:FindFirstChild("LunaUI") and CoreGui.LunaUI:FindFirstChild("MainFrame") and CoreGui.LunaUI.MainFrame:FindFirstChild("Sidebar")
-    if Sidebar then
-        local ProfileFrame = Instance.new("Frame", Sidebar)
-        ProfileFrame.Size = UDim2.new(1, 0, 0, 80); ProfileFrame.Position = UDim2.new(0, 0, 0, 10); ProfileFrame.BackgroundTransparency = 1
-        local Avatar = Instance.new("ImageLabel", ProfileFrame)
-        Avatar.Size = UDim2.new(0, 50, 0, 50); Avatar.Position = UDim2.new(0, 10, 0, 0)
-        Avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="..game.Players.LocalPlayer.UserId.."&width=420&height=420&format=png"
-        Instance.new("UICorner", Avatar).CornerRadius = UDim.new(1, 0)
-        local Name = Instance.new("TextLabel", ProfileFrame)
-        Name.Size = UDim2.new(1, -70, 0, 20); Name.Position = UDim2.new(0, 70, 0, 5); Name.BackgroundTransparency = 1
-        Name.Text = game.Players.LocalPlayer.DisplayName; Name.TextColor3 = Color3.fromRGB(255, 255, 255); Name.Font = Enum.Font.GothamBold; Name.TextSize = 14; Name.TextXAlignment = Enum.TextXAlignment.Left
-    end
-end)
-
--- ฟังก์ชัน Helper
-local function SafeFire(eventName, ...)
-    local event = game:GetService("ReplicatedStorage"):WaitForChild("Events"):FindFirstChild(eventName)
-    if event then event:FireServer(...) end
+if not success then
+    warn("Nexora Error: ไม่สามารถโหลด LunaLib ได้")
+    return
 end
 
--- TAB: SHOP
-local Shop = Window:CreateTab({ Name = "Shop" })
-Shop:CreateToggle({ Name = "Auto Buy Frostbound", Callback = function(v)
-    getgenv().AutoBuy = v
-    task.spawn(function() while getgenv().AutoBuy do SafeFire("TotemShopPurchaseEvent", "Frostbound"); task.wait(900) end end)
-end})
+local Window = Luna:CreateWindow()
 
--- TAB: REWARDS
-local Rewards = Window:CreateTab({ Name = "🎁 Rewards" })
-Rewards:CreateToggle({ Name = "Auto Claim 1-10", Callback = function(v)
-    getgenv().AutoClaim = v
-    task.spawn(function() while getgenv().AutoClaim do for i=1,10 do if not getgenv().AutoClaim then break end; SafeFire("PlaytimeRewardUpdateEvent", tostring(i)); task.wait(1) end; task.wait(5) end end)
-end})
+-- ฟังก์ชันส่ง Event
+local function SafeFireServer(eventName, ...)
+    local event = game:GetService("ReplicatedStorage"):WaitForChild("Events"):FindFirstChild(eventName)
+    if event then
+        event:FireServer(...)
+    end
+end
 
--- TAB: SPINS
-local Spins = Window:CreateTab({ Name = "Spins" })
-Spins:CreateToggle({ Name = "Auto Spin Wheel", Callback = function(v)
-    getgenv().AutoSpin = v
-    task.spawn(function() while getgenv().AutoSpin do SafeFire("AdminAbuseSpinWheelEvent", "Spin"); task.wait(0.1); SafeFire("AdminAbuseSpinWheelEvent", "SpinComplete"); task.wait(5) end end)
-end})
+-- =================================================================
+-- TAB 1: SHOP
+-- =================================================================
+local ShopTab = Window:CreateTab({ Name = "Shop" })
+ShopTab:CreateToggle({
+    Name = "Auto Buy Frostbound (15 Min)",
+    CurrentValue = getgenv().NexoraData.AutoBuy,
+    Callback = function(Value)
+        getgenv().NexoraData.AutoBuy = Value
+        if Value then
+            task.spawn(function()
+                while getgenv().NexoraData.AutoBuy do
+                    SafeFireServer("TotemShopPurchaseEvent", "Frostbound")
+                    task.wait(900)
+                end
+            end)
+        end
+    end
+})
 
--- TAB: AUTO CLICKER
-local Clicker = Window:CreateTab({ Name = "🎯 Auto Clicker" })
-getgenv().SX = 0; getgenv().SY = 0
-local Status = Clicker:CreateLabel({ Name = "ตำแหน่ง: 0, 0" })
-Clicker:CreateButton({ Name = "จดจำตำแหน่งเมาส์", Callback = function()
-    local m = game.Players.LocalPlayer:GetMouse(); getgenv().SX, getgenv().SY = m.X, m.Y
-    Status:Update("ตำแหน่ง: " .. m.X .. ", " .. m.Y)
-end})
-Clicker:CreateToggle({ Name = "Enable Auto Click", Callback = function(v)
-    getgenv().AutoClick = v
-    task.spawn(function() while getgenv().AutoClick do pcall(function() mouse1click(getgenv().SX, getgenv().SY) end); task.wait(0.5) end end)
-end})
+-- =================================================================
+-- =================================================================
+-- TAB 2: REWARDS (Updated to Auto Loop 1-10)
+-- =================================================================
+local RewardTab = Window:CreateTab({ Name = "🎁 Rewards" })
+RewardTab:CreateSection("AUTO CLAIM 1-10")
 
--- TAB: SYSTEM
-local System = Window:CreateTab({ Name = "System" })
-System:CreateToggle({ Name = "Auto Hide Eggs", Callback = function(v)
-    getgenv().HideGUI = v
-    if v then
-        local pg = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-        getgenv().Conn = pg.ChildAdded:Connect(function(g)
-            if getgenv().HideGUI and g:IsA("ScreenGui") and g.Name ~= "LunaUI" and (string.find(string.lower(g.Name), "egg") or string.find(string.lower(g.Name), "hatch")) and not string.find(string.lower(g.Name), "spin") then g.Enabled = false end
+RewardTab:CreateToggle({
+    Name = "Auto Claim Rewards (1-10)",
+    CurrentValue = getgenv().NexoraData.AutoClaim,
+    Callback = function(Value)
+        getgenv().NexoraData.AutoClaim = Value
+        if Value then
+            task.spawn(function()
+                while getgenv().NexoraData.AutoClaim do
+                    -- วนลูปเลข 1 ถึง 10
+                    for i = 1, 10 do
+                        if not getgenv().NexoraData.AutoClaim then break end
+                        
+                        local args = { tostring(i) }
+                        local event = game:GetService("ReplicatedStorage"):WaitForChild("Events"):FindFirstChild("PlaytimeRewardUpdateEvent")
+                        
+                        if event then
+                            event:FireServer(unpack(args))
+                            print("Nexora: Claimed Reward ID: " .. i)
+                        end
+                        
+                        task.wait(1) -- เว้นช่วง 1 วินาทีต่อการกด 1 ครั้ง เพื่อไม่ให้ Spam เกินไป
+                    end
+                    task.wait(5) -- จบ 1 รอบ 1-10 แล้วรอ 5 วินาทีก่อนเริ่มรอบใหม่
+                end
+            end)
+        end
+    end
+})
+
+-- =================================================================
+-- TAB 3: SPINS & SYSTEM
+-- =================================================================
+local SpinTab = Window:CreateTab({ Name = "Spins" })
+SpinTab:CreateToggle({
+    Name = "Auto Spin Wheel",
+    CurrentValue = getgenv().NexoraData.AutoSpin,
+    Callback = function(Value)
+        getgenv().NexoraData.AutoSpin = Value
+        task.spawn(function()
+            while getgenv().NexoraData.AutoSpin do
+                SafeFireServer("AdminAbuseSpinWheelEvent", "Spin")
+                task.wait(0.1)
+                SafeFireServer("AdminAbuseSpinWheelEvent", "SpinComplete")
+                task.wait(5)
+            end
         end)
-    elseif getgenv().Conn then getgenv().Conn:Disconnect() end
-end})
+    end
+})
+
+local SystemTab = Window:CreateTab({ Name = "System" })
+
+SystemTab:CreateButton({
+    Name = "Server Hop (Safe)",
+    Callback = function()
+        local success, servers = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        end)
+        if success and servers then
+            for _, s in pairs(servers.data) do
+                if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                    game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, s.id)
+                end
+            end
+        end
+    end
+})
+
+SystemTab:CreateToggle({
+    Name = "Auto Hide GUI (100% Block)",
+    Callback = function(Value)
+        getgenv().HideGUI = Value
+        
+        if Value then
+            local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+            
+            -- ฟังก์ชันสั่งตาย (ทำให้หายไปจากหน้าจอแบบถาวร)
+            local function killGui(gui)
+                if getgenv().HideGUI and gui:IsA("ScreenGui") and gui.Name ~= "LunaUI" then
+                    local n = string.lower(gui.Name)
+                    -- ตรวจสอบชื่อที่ต้องการซ่อน (ยกเว้น Spin ตามที่คุณต้องการ)
+                    if (string.find(n, "egg") or string.find(n, "hatch") or string.find(n, "opening")) 
+                       and not string.find(n, "spin") then
+                        
+                        gui.Enabled = false -- ปิดการแสดงผล
+                        gui.Visible = false -- ซ่อนแบบ 100%
+                        
+                        -- ดักทุกการเปลี่ยนแปลงไม่ให้กลับมาโชว์
+                        gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+                            if getgenv().HideGUI then gui.Enabled = false end
+                        end)
+                        gui:GetPropertyChangedSignal("Visible"):Connect(function()
+                            if getgenv().HideGUI then gui.Visible = false end
+                        end)
+                    end
+                end
+            end
+            
+            -- ดักฟังตลอดไป
+            getgenv().HideConnection = playerGui.DescendantAdded:Connect(killGui)
+            
+            -- กวาดล้างของเก่า
+            for _, gui in pairs(playerGui:GetChildren()) do
+                killGui(gui)
+            end
+        else
+            -- ยกเลิกการดักฟัง
+            if getgenv().HideConnection then
+                getgenv().HideConnection:Disconnect()
+                getgenv().HideConnection = nil
+            end
+        end
+    end
+})
