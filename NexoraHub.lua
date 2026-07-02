@@ -103,7 +103,39 @@ SpinTab:CreateToggle({
         end)
     end
 })
+-- นำส่วนนี้ไปวางไว้ในไฟล์ NexoraHub.lua ของคุณ
+return function(Window)
+    -- ... (โค้ดฟังก์ชันเดิมของคุณที่มีอยู่แล้ว) ...
 
+    -- เพิ่มส่วน Auto Clicker เข้าไปที่นี่
+    local ClickTab = Window:CreateTab({ Name = "🎯 Auto Clicker" })
+    getgenv().SavedX = 0
+    getgenv().SavedY = 0
+
+    local Status = ClickTab:CreateLabel({ Name = "ตำแหน่ง: 0, 0" })
+
+    ClickTab:CreateButton({ 
+        Name = "จดจำตำแหน่งเมาส์", 
+        Callback = function() 
+            local m = game.Players.LocalPlayer:GetMouse()
+            getgenv().SavedX, getgenv().SavedY = m.X, m.Y
+            Status:Update("ตำแหน่ง: " .. m.X .. ", " .. m.Y)
+        end
+    })
+
+    ClickTab:CreateToggle({ 
+        Name = "Enable Auto Click", 
+        Callback = function(v) 
+            getgenv().AutoClick = v
+            task.spawn(function() 
+                while getgenv().AutoClick do 
+                    pcall(function() mouse1click(getgenv().SavedX, getgenv().SavedY) end)
+                    task.wait(0.5) 
+                end 
+            end) 
+        end
+    })
+    
 local SystemTab = Window:CreateTab({ Name = "System" })
 
 SystemTab:CreateButton({
