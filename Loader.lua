@@ -1,37 +1,13 @@
 -- =================================================================
--- COMPKILLER LOADER | NEXORA HUB INTEGRATED
+-- COMPKILLER LOADER | INSTANT LOAD + AUTO CLICKER INTEGRATED
 -- =================================================================
---local CoreGui = game:GetService("CoreGui")
+local CoreGui = game:GetService("CoreGui")
 
--- 1. สร้างหน้า Loading Screen แบบด่วน (0.5 วินาที)
---local LoadGui = Instance.new("ScreenGui", CoreGui)
---LoadGui.Name = "NexoraLoading"
---LoadGui.IgnoreGuiInset = true
-
---local Frame = Instance.new("Frame", LoadGui)
---Frame.Size = UDim2.new(1, 0, 1, 0)
---Frame.BackgroundColor3 = Color3.fromRGB(15, 16, 20)
---Frame.BorderSizePixel = 0
-
---local Text = Instance.new("TextLabel", Frame)
---Text.Size = UDim2.new(0, 400, 0, 50)
---Text.Position = UDim2.new(0.5, -200, 0.5, -25)
---Text.BackgroundTransparency = 1
---Text.Text = "กำลังโหลด NEXORA..."
---Text.TextColor3 = Color3.fromRGB(0, 220, 255)
---Text.Font = Enum.Font.GothamBold
---Text.TextSize = 30
---Text.Parent = Frame
-
--- 2. ดึง Library และไฟล์หลัก (โหลดก่อน)
+-- 1. ดึง Library และไฟล์หลัก (NexoraHub.lua)
 local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/main/source.lua"))()
 local NexoraContent = loadstring(game:HttpGet("https://raw.githubusercontent.com/REDHACKERKING/Nexora/refs/heads/main/NexoraHub.lua"))()
 
--- 3. โชว์หน้าโหลด 0.5 วินาที แล้วลบทิ้ง
---task.wait(0.5)
---LoadGui:Destroy()
-
--- 4. เรียกใช้ Custom Profile Wrapper
+-- 2. ตั้งค่า Custom Wrapper
 local CustomLuna = {}
 for k, v in pairs(Luna) do CustomLuna[k] = v end
 
@@ -45,17 +21,68 @@ CustomLuna.CreateWindow = function(self, configs)
     
     local windowObj = Luna:CreateWindow(options)
     
+    -- ใส่ Profile Section ที่ Sidebar
     task.spawn(function()
         task.wait(0.3)
         local Sidebar = CoreGui:FindFirstChild("LunaUI") and CoreGui.LunaUI:FindFirstChild("MainFrame") and CoreGui.LunaUI.MainFrame:FindFirstChild("Sidebar")
         if Sidebar then
-            -- [ใส่โค้ดสร้าง ProfileFrame แบบเดิมของคุณที่นี่]
-            -- (นาฬิกาและชื่อแมพจะทำงานในนี้)
+            local ProfileFrame = Instance.new("Frame", Sidebar)
+            ProfileFrame.Name = "ProfileSection"
+            ProfileFrame.Size = UDim2.new(1, 0, 0, 80)
+            ProfileFrame.Position = UDim2.new(0, 0, 0, 10)
+            ProfileFrame.BackgroundTransparency = 1
+            
+            local Avatar = Instance.new("ImageLabel", ProfileFrame)
+            Avatar.Size = UDim2.new(0, 50, 0, 50)
+            Avatar.Position = UDim2.new(0, 10, 0, 0)
+            Avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="..game.Players.LocalPlayer.UserId.."&width=420&height=420&format=png"
+            Instance.new("UICorner", Avatar).CornerRadius = UDim.new(1, 0)
+            
+            local Name = Instance.new("TextLabel", ProfileFrame)
+            Name.Size = UDim2.new(1, -70, 0, 20)
+            Name.Position = UDim2.new(0, 70, 0, 5)
+            Name.BackgroundTransparency = 1
+            Name.Text = game.Players.LocalPlayer.DisplayName
+            Name.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Name.Font = Enum.Font.GothamBold
+            Name.TextSize = 14
+            Name.TextXAlignment = Enum.TextXAlignment.Left
         end
     end)
     return windowObj
 end
 
--- 5. สร้าง Window และ Load สคริปต์หลัก
+-- 3. สร้าง Window หลัก
 local Window = CustomLuna:CreateWindow()
-NexoraContent(Window) -- รันฟังก์ชันจากไฟล์ NexoraHub.lua ของคุณ
+
+-- 4. เพิ่มระบบ Auto Clicker ลงใน Window
+local ClickTab = Window:CreateTab({ Name = "🎯 Auto Clicker" })
+getgenv().SavedX = 0
+getgenv().SavedY = 0
+
+local Status = ClickTab:CreateLabel({ Name = "ตำแหน่ง: 0, 0" })
+
+ClickTab:CreateButton({ 
+    Name = "จดจำตำแหน่งเมาส์", 
+    Callback = function() 
+        local m = game.Players.LocalPlayer:GetMouse()
+        getgenv().SavedX, getgenv().SavedY = m.X, m.Y
+        Status:Update("ตำแหน่ง: " .. m.X .. ", " .. m.Y)
+    end
+})
+
+ClickTab:CreateToggle({ 
+    Name = "Enable Auto Click", 
+    Callback = function(v) 
+        getgenv().AutoClick = v
+        task.spawn(function() 
+            while getgenv().AutoClick do 
+                pcall(function() mouse1click(getgenv().SavedX, getgenv().SavedY) end)
+                task.wait(0.5) 
+            end 
+        end) 
+    end
+})
+
+-- 5. รันฟังก์ชันจากไฟล์ NexoraHub.lua ของคุณ
+NexoraContent(Window)
