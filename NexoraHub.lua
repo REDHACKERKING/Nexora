@@ -1,26 +1,17 @@
 -- =================================================================
--- Nexora Hub - Final Full Version
+-- NexoraHub.lua - Final Full Version (Combined & Optimized)
 -- =================================================================
 
 return function(Window)
-    -- ระบบจดจำสถานะ (Persistence)
-    getgenv().NexoraData = getgenv().NexoraData or {
-        AutoBuy = false,
-        AutoSpin = false,
-        AutoClaim = false
-    }
-
-    -- ฟังก์ชันส่ง Event
+    -- ระบบข้อมูล
+    getgenv().NexoraData = getgenv().NexoraData or { AutoBuy = false, AutoSpin = false, AutoClaim = false }
+    
     local function SafeFireServer(eventName, ...)
         local event = game:GetService("ReplicatedStorage"):WaitForChild("Events"):FindFirstChild(eventName)
-        if event then
-            event:FireServer(...)
-        end
+        if event then event:FireServer(...) end
     end
 
-    -- =================================================================
     -- TAB 1: SHOP
-    -- =================================================================
     local ShopTab = Window:CreateTab({ Name = "Shop" })
     ShopTab:CreateToggle({
         Name = "Auto Buy Frostbound (15 Min)",
@@ -38,9 +29,7 @@ return function(Window)
         end
     })
 
-    -- =================================================================
     -- TAB 2: REWARDS
-    -- =================================================================
     local RewardTab = Window:CreateTab({ Name = "🎁 Rewards" })
     RewardTab:CreateToggle({
         Name = "Auto Claim Rewards (1-10)",
@@ -52,8 +41,7 @@ return function(Window)
                     while getgenv().NexoraData.AutoClaim do
                         for i = 1, 10 do
                             if not getgenv().NexoraData.AutoClaim then break end
-                            local event = game:GetService("ReplicatedStorage"):WaitForChild("Events"):FindFirstChild("PlaytimeRewardUpdateEvent")
-                            if event then event:FireServer(tostring(i)) end
+                            SafeFireServer("PlaytimeRewardUpdateEvent", tostring(i))
                             task.wait(1)
                         end
                         task.wait(5)
@@ -63,9 +51,7 @@ return function(Window)
         end
     })
 
-    -- =================================================================
     -- TAB 3: SPINS
-    -- =================================================================
     local SpinTab = Window:CreateTab({ Name = "Spins" })
     SpinTab:CreateToggle({
         Name = "Auto Spin Wheel",
@@ -83,13 +69,11 @@ return function(Window)
         end
     })
 
-    -- =================================================================
-    -- TAB 4: AUTO CLICKER (Integration)
-    -- =================================================================
+    -- TAB 4: AUTO CLICKER
     local ClickTab = Window:CreateTab({ Name = "🎯 Auto Clicker" })
     getgenv().SavedX = 0; getgenv().SavedY = 0
     local Status = ClickTab:CreateLabel({ Name = "ตำแหน่ง: 0, 0" })
-
+    
     ClickTab:CreateButton({ 
         Name = "จดจำตำแหน่งเมาส์", 
         Callback = function() 
@@ -98,7 +82,7 @@ return function(Window)
             Status:Update("ตำแหน่ง: " .. m.X .. ", " .. m.Y)
         end
     })
-
+    
     ClickTab:CreateToggle({ 
         Name = "Enable Auto Click", 
         Callback = function(v) 
@@ -112,43 +96,34 @@ return function(Window)
         end
     })
 
-    -- =================================================================
     -- TAB 5: SYSTEM
-    -- =================================================================
     local SystemTab = Window:CreateTab({ Name = "System" })
-
-    SystemTab:CreateButton({
-        Name = "Server Hop (Safe)",
-        Callback = function()
-            local success, servers = pcall(function()
-                return game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-            end)
-            if success and servers then
-                for _, s in pairs(servers.data) do
-                    if s.playing < s.maxPlayers and s.id ~= game.JobId then
-                        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, s.id)
-                    end
-                end
+    SystemTab:CreateButton({ Name = "Server Hop (Safe)", Callback = function()
+        local s = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        for _, v in pairs(s.data) do
+            if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, v.id)
             end
         end
-    })
+    end})
 
     SystemTab:CreateToggle({
-        Name = "Auto Hide GUI",
+        Name = "Auto Hide Eggs (Keep Spins Visible)",
         Callback = function(Value)
             getgenv().HideGUI = Value
             if Value then
                 local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-                getgenv().HideConnection = playerGui.ChildAdded:Connect(function(gui)
-                    if getgenv().HideGUI and gui:IsA("ScreenGui") and gui.Name ~= "LunaUI" and (string.find(string.lower(gui.Name), "egg") or string.find(string.lower(gui.Name), "spin")) then
-                        gui.Enabled = false
-                    end
-                end)
-                for _, gui in pairs(playerGui:GetChildren()) do
-                    if gui:IsA("ScreenGui") and gui.Name ~= "LunaUI" and (string.find(string.lower(gui.Name), "egg") or string.find(string.lower(gui.Name), "spin")) then
-                        gui.Enabled = false
+                local function checkAndHide(gui)
+                    if gui:IsA("ScreenGui") and gui.Name ~= "LunaUI" then
+                        local n = string.lower(gui.Name)
+                        if (string.find(n, "egg") or string.find(n, "hatch") or string.find(n, "opening")) 
+                           and not string.find(n, "spin") then
+                            gui.Enabled = false
+                        end
                     end
                 end
+                getgenv().HideConnection = playerGui.ChildAdded:Connect(checkAndHide)
+                for _, gui in pairs(playerGui:GetChildren()) do checkAndHide(gui) end
             elseif getgenv().HideConnection then
                 getgenv().HideConnection:Disconnect()
                 getgenv().HideConnection = nil
